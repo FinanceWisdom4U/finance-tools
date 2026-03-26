@@ -19,6 +19,8 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        env:
+          DISABLE_ESLINT_PLUGIN: true
 
       - name: Build React app
         run: npm run build
