@@ -1,0 +1,49 @@
+name: Build Finance Tools
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+
+      # ── Build artifact upload ──────────────────────────────────────────────
+      # Downloads the build/ folder as a zip from:
+      # GitHub → Actions → latest run → Artifacts → "build"
+      - name: Upload build as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build/
+          retention-days: 7
+
+      # ── FTP Auto-deploy (disabled — enable when ready) ────────────────────
+      # To enable: remove the # from each line below,
+      # and add FTP_SERVER / FTP_USERNAME / FTP_PASSWORD in:
+      # Repo → Settings → Secrets and variables → Actions
+      #
+      # - name: Deploy via FTP to Hostinger
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      #   with:
+      #     server: ${{ secrets.FTP_SERVER }}
+      #     username: ${{ secrets.FTP_USERNAME }}
+      #     password: ${{ secrets.FTP_PASSWORD }}
+      #     local-dir: ./build/
+      #     server-dir: /public_html/finance-tools/
