@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import SalaryCalc from "./tools/NewRegimeSalaryCalc";
+import NewRegimeSalaryCalc from "./tools/NewRegimeSalaryCalc";
 
 /* ─── Tool Registry ───────────────────────────────────────────
    To add a new tool:
