@@ -1,7 +1,24 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import NewRegimeSalaryCalc from "./tools/NewRegimeSalaryCalc";
 
-/* ─── Tool Registry ───────────────────────────────────────────
+/* ─── Google Analytics Route Tracker ───────────────────────────
+   Fires a GA pageview on every route change.
+   Must be inside <BrowserRouter> to access useLocation.
+─────────────────────────────────────────────────────────────── */
+function AnalyticsTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag("config", "G-LS24317CNQ", {
+        page_path: location.pathname,
+      });
+    }
+  }, [location]);
+  return null;
+}
+
+/* ─── Tool Registry ─────────────────────────────────────────────
    To add a new tool:
    1. Create src/tools/YourTool.jsx
    2. import YourTool from "./tools/YourTool"
@@ -21,11 +38,13 @@ function Home() {
       <p style={{ color: "#666", marginBottom: 32 }}>Free calculators for smart financial decisions</p>
       <div style={{ display: "grid", gap: 16 }}>
         {TOOLS.map(t => (
-          <Link key={t.path} to={t.path} style={{ textDecoration: "none" }}>
-            <div style={{ padding: "20px 24px", border: "1px solid #e5e7eb", borderRadius: 12,
-              background: "#fff", cursor: "pointer", transition: "box-shadow .15s" }}
+          <Link key={t.path} to={`/${t.path}`} style={{ textDecoration: "none" }}>
+            <div
+              style={{ padding: "20px 24px", border: "1px solid #e5e7eb", borderRadius: 12,
+                background: "#fff", cursor: "pointer", transition: "box-shadow .15s" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
               <div style={{ fontWeight: 600, fontSize: 16, color: "#111" }}>{t.label}</div>
               <div style={{ color: "#888", fontSize: 13, marginTop: 4 }}>{t.desc}</div>
             </div>
@@ -36,9 +55,11 @@ function Home() {
   );
 }
 
+/* ─── App Router ─────────────────────────────────────────────── */
 export default function App() {
   return (
     <BrowserRouter basename="/finance-tools">
+      <AnalyticsTracker />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/new-regime-salary-calculator" element={<NewRegimeSalaryCalc />} />
