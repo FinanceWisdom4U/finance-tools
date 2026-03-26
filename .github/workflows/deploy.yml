@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,9 +24,9 @@ jobs:
         env:
           DISABLE_ESLINT_PLUGIN: true
 
-      # ── Build artifact upload ──────────────────────────────────────────────
-      # Downloads the build/ folder as a zip from:
-      # GitHub → Actions → latest run → Artifacts → "build"
+      - name: Copy .htaccess to build
+        run: cp public/.htaccess build/.htaccess
+
       - name: Upload build as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -35,11 +34,7 @@ jobs:
           path: build/
           retention-days: 7
 
-      # ── FTP Auto-deploy (disabled — enable when ready) ────────────────────
-      # To enable: remove the # from each line below,
-      # and add FTP_SERVER / FTP_USERNAME / FTP_PASSWORD in:
-      # Repo → Settings → Secrets and variables → Actions
-      #
+      # ── FTP Auto-deploy (disabled — enable when ready) ────
       # - name: Deploy via FTP to Hostinger
       #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       #   with:
