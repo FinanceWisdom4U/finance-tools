@@ -18,7 +18,7 @@ Each tool is a standalone component — add new tools by dropping a JSX file and
 - **React 18** — UI framework
 - **React Router v6** — client-side routing
 - **GitHub Actions** — automated build on every push
-- **Hostinger** — static file hosting (manual upload or FTP deploy)
+- **Apache / LiteSpeed** — static file hosting (manual upload or FTP deploy)
 
 ---
 
@@ -28,7 +28,7 @@ Each tool is a standalone component — add new tools by dropping a JSX file and
 finance-tools/
 ├── public/
 │   ├── index.html              ← app entry point
-│   └── .htaccess               ← fixes React Router on Apache/Hostinger
+│   └── .htaccess               ← fixes React Router inside finance-tools/
 ├── src/
 │   ├── index.js                ← React root
 │   ├── App.jsx                 ← routing + tool registry
@@ -83,16 +83,16 @@ Every push to `main` triggers `.github/workflows/deploy.yml` which:
 2. Sets up Node.js 18
 3. Runs `npm install`
 4. Runs `npm run build` (with ESLint disabled for CI)
-5. Copies `public/.htaccess` into `build/` manually (react-scripts skips dotfiles)
+5. Copies `public/.htaccess` into `build/` manually (react-scripts skips dotfiles by default)
 6. Uploads `build/` as a downloadable artifact (retained 7 days)
 
-> FTP auto-deploy to Hostinger is present in `deploy.yml` but commented out.
+> FTP auto-deploy is present in `deploy.yml` but commented out.
 > Enable it by uncommenting and adding `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
 > in **Repo → Settings → Secrets and variables → Actions**.
 
 ---
 
-## Manual Deploy to Hostinger
+## Manual Deploy to Hosting Server
 
 **Step 1** — Download build artifact:
 ```
@@ -101,27 +101,83 @@ GitHub → Actions → latest green run → Artifacts → download "build"
 
 **Step 2** — Unzip the downloaded `build.zip`
 
-**Step 3** — Enable hidden files on Windows (to see `.htaccess`):
+**Step 3** — Enable hidden files on Windows to see `.htaccess`:
 ```
 File Explorer → View → Show → Hidden items ✅
 ```
 
-**Step 4** — Upload ALL contents to Hostinger:
+**Step 4** — Upload ALL contents to your server:
 ```
-hPanel → Files → File Manager → public_html/finance-tools/
+File Manager → public_html/finance-tools/
 Upload: index.html, asset-manifest.json, .htaccess, static/
 ```
 
-**Step 5** — If `.htaccess` is still not visible, create it manually in Hostinger:
+**Step 5** — If `.htaccess` is missing from zip, create it manually on the server:
 ```
 File Manager → public_html/finance-tools/ → New File → .htaccess
 ```
-Paste this content:
+
+Paste this exact content (each rule on its own line):
 ```apache
 Options -MultiViews
 RewriteEngine On
+RewriteBase /finance-tools/
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.html [QL]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+```
+
+---
+
+## Critical — Root `.htaccess` Configuration
+
+This is the most important step for direct URL access to work (e.g. sharing a tool URL directly).
+
+When hosted alongside a WordPress site on Apache/LiteSpeed, the root `public_html/.htaccess` must have a React exclusion block added **above** the `# BEGIN WordPress` section.
+
+Add this block between `# END NON_LSCACHE` and `# BEGIN WordPress`:
+
+```apache
+# React Finance Tools — exclude from WordPress routing
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/finance-tools
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^finance-tools/.* /finance-tools/index.html [L]
+</IfModule>
+```
+
+**Why this is needed:** WordPress's `RewriteRule . /index.php [L]` catches ALL unrecognised URLs
+and serves a WordPress 404. Without the exclusion block, any direct link to a React route
+(e.g. `/finance-tools/new-regime-salary-calculator`) gets intercepted by WordPress before
+React Router can handle it.
+
+**Important:** Never put this block inside `# BEGIN WordPress` / `# END WordPress` markers —
+WordPress will overwrite it on every settings save.
+
+### Full working .htaccess combination
+
+**`public_html/finance-tools/.htaccess`** — React Router rules only:
+```apache
+Options -MultiViews
+RewriteEngine On
+RewriteBase /finance-tools/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+```
+
+**`public_html/.htaccess`** — add above `# BEGIN WordPress`:
+```apache
+# React Finance Tools — exclude from WordPress routing
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/finance-tools
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^finance-tools/.* /finance-tools/index.html [L]
+</IfModule>
 ```
 
 ---
@@ -145,7 +201,7 @@ Then add secrets in:
 ```
 GitHub repo → Settings → Secrets and variables → Actions → New repository secret
 
-FTP_SERVER    → your Hostinger FTP server hostname
+FTP_SERVER    → your hosting FTP server hostname
 FTP_USERNAME  → your FTP username
 FTP_PASSWORD  → your FTP password
 ```
@@ -157,10 +213,12 @@ FTP_PASSWORD  → your FTP password
 | Issue | Fix |
 |---|---|
 | `Dependencies lock file is not found` | Remove `cache: "npm"` from setup-node step in `deploy.yml` |
-| `'ComponentName' is not defined` | Import name in `App.jsx` must match export name in tool file |
-| ESLint errors fail the build | Add `DISABLE_ESLINT_PLUGIN: true` env to build step |
-| `.htaccess` missing from build zip | Add `cp public/.htaccess build/.htaccess` step after build |
-| Page refresh gives 404 on Hostinger | `.htaccess` is missing — create it manually in File Manager |
+| `'ComponentName' is not defined` | Import name in `App.jsx` must exactly match the export name in the tool file |
+| ESLint errors fail the build | Add `DISABLE_ESLINT_PLUGIN: true` env under the build step in `deploy.yml` |
+| `.htaccess` missing from build zip | Add `cp public/.htaccess build/.htaccess` step after build in `deploy.yml` |
+| Direct URL gives WordPress 404 | Add React exclusion block above `# BEGIN WordPress` in root `.htaccess` |
+| Page refresh gives 404 inside app | `finance-tools/.htaccess` is missing or has wrong `RewriteBase` |
+| Assets (JS/CSS) not loading | Check `homepage` field in `package.json` matches the actual deployment path |
 
 ---
 
