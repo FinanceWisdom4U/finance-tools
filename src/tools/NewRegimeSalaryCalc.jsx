@@ -6,7 +6,7 @@ const fL = n => n>=1e7?`₹${(n/1e7).toFixed(2)} Cr`:n>=1e5?`₹${(n/1e5).toFixe
 const fN = n => new Intl.NumberFormat("en-IN",{maximumFractionDigits:0}).format(n);
 const tN = s => parseInt(String(s).replace(/,/g,"").replace(/\D/g,""))||0;
 
-// ── tax engine (New Regime FY 2025-26) ───────────────────────────────────────
+// ── tax engine (New Regime FY 2026-27) ───────────────────────────────────────
 function slabTax(ti){
   if(ti<=0)return 0;
   const s=[[400000,0],[800000,.05],[1200000,.1],[1600000,.15],[2000000,.2],[2400000,.25],[Infinity,.3]];
@@ -90,7 +90,7 @@ function MoneyIn({label,hint,val,set,acc,ph="0"}){
       <input value={val} placeholder={ph}
         onChange={e=>{const r=e.target.value.replace(/,/g,"").replace(/\D/g,"");set(r?fN(parseInt(r)):"");}}
         onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
-        style={{flex:1,background:"none",border:"none",outline:"none",fontSize:20,fontWeight:800,color:T.ink,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}/>
+        className="money-input" style={{flex:1,background:"none",border:"none",outline:"none",fontSize:20,fontWeight:800,color:T.ink,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}/>
       {val&&<span style={{fontSize:12,color:T.i3,background:T.bg,border:`1px solid ${T.border}`,padding:"4px 10px",borderRadius:8,fontWeight:600}}>{fL(tN(val))}</span>}
     </div>
   </div>;
@@ -112,14 +112,14 @@ function Card({title,icon,acc,children}){
         fontSize:18,flexShrink:0}}>{icon}</div>
       <span style={{fontSize:14,fontWeight:800,color:T.ink,letterSpacing:"-0.03em",flex:1,fontFamily:"'Sora',sans-serif"}}>{title}</span>
     </div>
-    <div style={{padding:"12px 22px 22px"}}>{children}</div>
+    <div className="card-inner" style={{padding:"10px 16px 18px"}}>{children}</div>
   </div>;
 }
 
 function Row({label,sub,val,bold,col,indent,topB,noB,muted}){
   const vc=col||(bold?T.ink:T.i2);
   return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-    padding:bold?"13px 0":"9px 0",paddingLeft:indent?18:0,
+    padding:bold?"11px 0":"8px 0",paddingLeft:indent?14:0,
     borderTop:topB?`2px solid ${T.border}`:"none",
     borderBottom:noB?"none":`1px solid ${T.border}50`,
     marginTop:topB?10:0,opacity:muted?.3:1,gap:10,position:"relative"}}>
@@ -243,6 +243,7 @@ export default function NewRegimeSalaryCalc(){
   const[bonusPct,setBonusPct]=useState(0);
   const[bonusManual,setBonusManual]=useState("");
   const[erPfStr,setErPfStr]=useState("");
+  const[erPfOverride,setErPfOverride]=useState(false);
   const[basicPct,setBasicPct]=useState(50);
   const[pfCap,setPfCap]=useState(false);
   const[pt,setPt]=useState(true);
@@ -466,19 +467,65 @@ export default function NewRegimeSalaryCalc(){
   return <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at top,#EDE9E3 0%,${T.bg} 60%)`,fontFamily:"'Outfit',sans-serif",color:T.ink}}>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"/>
     <style>{`
-      *{box-sizing:border-box}
-      input[type=range]{height:5px;outline:none}
-      input[type=range]::-webkit-slider-thumb{width:18px;height:18px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
-      button:active{transform:scale(0.97)}
-      ::-webkit-scrollbar{width:5px;height:5px}
+      *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+      html,body{overflow-x:hidden;-webkit-text-size-adjust:100%}
+      input[type=range]{height:5px;outline:none;width:100%}
+      input[type=range]::-webkit-slider-thumb{width:22px;height:22px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+      button{touch-action:manipulation}
+      button:active{opacity:0.8;transform:scale(0.97)}
+      ::-webkit-scrollbar{width:4px;height:4px}
       ::-webkit-scrollbar-thumb{background:#C4BDB3;border-radius:10px}
       @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-      .card-section{animation:fadeUp .3s ease forwards}
+
+      /* ── Mobile ≤ 480px ── */
+      @media(max-width:480px){
+        /* Header */
+        .hdr-h1{font-size:16px !important}
+        .hdr-pad{padding:14px 16px 12px !important}
+        /* Mode tabs */
+        .ctc-mode-tab{padding:9px 10px !important}
+        .ctc-mode-tab .title{font-size:12px !important}
+        .ctc-mode-tab .sub{display:none !important}
+        /* Card */
+        .card-inner{padding:8px 14px 14px !important}
+        .card-hdr{padding:11px 14px !important}
+        /* Presets — scroll horizontally instead of wrap */
+        .preset-row{flex-wrap:nowrap !important;overflow-x:auto !important;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+        .preset-row::-webkit-scrollbar{height:0}
+        /* Joining month row — horizontal scroll */
+        .month-row{flex-wrap:nowrap !important;overflow-x:auto !important;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+        .month-row::-webkit-scrollbar{height:0}
+        /* Bonus timing pills */
+        .timing-row{flex-wrap:nowrap !important;overflow-x:auto !important;-webkit-overflow-scrolling:touch}
+        .timing-row::-webkit-scrollbar{height:0}
+        /* Money input font */
+        .money-input{font-size:22px !important}
+        /* Row values */
+        .row-val{font-size:13px !important}
+        /* In-hand hero */
+        .inhand-big{font-size:34px !important}
+        /* Table horizontal scroll */
+        .tbl-wrap{overflow-x:auto !important;-webkit-overflow-scrolling:touch}
+        /* Basic % live values — stack on mobile */
+        .basic-live{display:none !important}
+      }
+      @media(max-width:480px){
+        .main-wrap{padding:10px 10px 48px !important;gap:10px !important}
+        .inhand-pills{grid-template-columns:1fr 1fr !important}
+        .timing-row button{padding:5px 11px !important;font-size:11px !important}
+        .preset-row button{padding:4px 10px !important;font-size:11px !important}
+      }
+      @media(max-width:360px){
+        .ctc-mode-tab .title{font-size:11px !important}
+        .hdr-h1{font-size:14px !important}
+        .inhand-big{font-size:28px !important}
+        .main-wrap{padding:8px 8px 48px !important}
+      }
     `}</style>
 
 
     {/* header */}
-    <div style={{background:"linear-gradient(135deg,#0C1A2E 0%,#1A2D1A 45%,#0C1A0C 100%)",padding:"22px 24px 20px",position:"relative",overflow:"hidden"}}>
+    <div className="hdr-pad" style={{background:"linear-gradient(135deg,#0C1A2E 0%,#1A2D1A 45%,#0C1A0C 100%)",padding:"22px 24px 20px",position:"relative",overflow:"hidden"}}>
       {/* decorative circles */}
       <div style={{position:"absolute",right:-40,top:-40,width:180,height:180,borderRadius:"50%",background:"rgba(255,255,255,0.025)",pointerEvents:"none"}}/>
       <div style={{position:"absolute",right:60,bottom:-60,width:120,height:120,borderRadius:"50%",background:"rgba(4,120,87,0.15)",pointerEvents:"none"}}/>
@@ -486,21 +533,21 @@ export default function NewRegimeSalaryCalc(){
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
           <div style={{width:42,height:42,borderRadius:13,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🇮🇳</div>
           <div>
-            <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#fff",letterSpacing:"-0.03em",lineHeight:1.1,fontFamily:"'Sora',sans-serif"}}>In-Hand Salary Calculator</h1>
-            <p style={{margin:"3px 0 0",fontSize:12,color:"rgba(255,255,255,0.45)",fontWeight:400}}>New Tax Regime · FY 2025–26 · India</p>
+            <h1 className="hdr-h1" style={{margin:0,fontSize:20,fontWeight:800,color:"#fff",letterSpacing:"-0.03em",lineHeight:1.1,fontFamily:"'Sora',sans-serif"}}>In-Hand Salary Calculator</h1>
+            <p style={{margin:"3px 0 0",fontSize:12,color:"rgba(255,255,255,0.45)",fontWeight:400}}>New Tax Regime · FY 2026–27 · India</p>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <Bdg l="New Tax Regime" c="#FEF3C7" grad="linear-gradient(135deg,#92400E,#B45309)"/>
-            <Bdg l="FY 2025–26" c="#BFDBFE" grad="linear-gradient(135deg,#1E3A8A,#2563EB)"/>
+            <Bdg l="FY 2026–27" c="#BFDBFE" grad="linear-gradient(135deg,#1E3A8A,#2563EB)"/>
             <Bdg l="PF · NPS · Surcharge · Perks" c="rgba(255,255,255,0.55)" bg="rgba(255,255,255,0.09)"/>
           </div>
           <button
             onClick={()=>{ setBaseStr(""); setBonusPct(0); setBonusManual(""); setErPfStr(""); setMode("breakdown");
               setBasicPct(50); setPfCap(false); setPt(true); setNpsOn(false); setNpsPct(10);
               setJoinMonth(0); setBSched("march"); setBSplit(50); setPerks([]); setDedns([]);
-              setCustomTwo(false); setCm1(11); setCm2(5); }}
+              setCustomTwo(false); setCm1(11); setCm2(5); setErPfOverride(false); }}
             style={{display:"flex",alignItems:"center",gap:5,padding:"6px 14px",borderRadius:20,
               background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
               color:"rgba(255,255,255,0.8)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
@@ -512,15 +559,15 @@ export default function NewRegimeSalaryCalc(){
       </div>
     </div>
 
-    <div style={{maxWidth:700,margin:"0 auto",padding:"16px 16px 48px",display:"flex",flexDirection:"column",gap:14}}>
+    <div className="main-wrap" style={{maxWidth:700,margin:"0 auto",padding:"12px 12px 48px",display:"flex",flexDirection:"column",gap:12}}>
 
       {/* ── INPUT ── */}
       <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
           {[["breakdown","📦 CTC Breakdown","Base + Bonus + ER PF on top"],["base_only","🏷️ Base + Bonus Only","ER PF embedded in Base"]].map(([v,title,sub])=>
-            <button key={v} onClick={()=>setMode(v)} style={{padding:"13px 16px",border:"none",borderBottom:`3px solid ${mode===v?T.bl:"transparent"}`,background:mode===v?T.bBg:T.bg,cursor:"pointer",textAlign:"left",borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",fontFamily:"inherit"}}>
-              <div style={{fontSize:13,fontWeight:800,color:mode===v?T.bl:T.i2,letterSpacing:'-0.02em'}}>{title}</div>
-              <div style={{fontSize:11,color:mode===v?T.bl+'99':T.i3,marginTop:3,fontWeight:mode===v?500:400}}>{sub}</div>
+            <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab" style={{padding:"11px 14px",border:"none",borderBottom:`3px solid ${mode===v?T.bl:"transparent"}`,background:mode===v?T.bBg:T.bg,cursor:"pointer",textAlign:"left",borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",fontFamily:"inherit"}}>
+              <div className="title" style={{fontSize:13,fontWeight:800,color:mode===v?T.bl:T.i2,letterSpacing:'-0.02em'}}>{title}</div>
+              <div className="sub" style={{fontSize:11,color:mode===v?T.bl+'99':T.i3,marginTop:2,fontWeight:mode===v?500:400}}>{sub}</div>
             </button>)}
         </div>
         <div style={{padding:"14px 20px 18px"}}>
@@ -545,10 +592,10 @@ export default function NewRegimeSalaryCalc(){
             {joinMonth>0&&<div style={{fontSize:11,color:T.am,padding:"5px 10px",background:T.aBg,borderRadius:7,borderLeft:`3px solid ${T.aR}`,marginBottom:10}}>
               Pro-rata: {12-joinMonth} of 12 months · tax &amp; PF scaled accordingly · full-year monthly in-hand stays same
             </div>}
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            <div className="month-row" style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
               {MONTHS.map((m,i)=><button key={i} onClick={()=>setJoinMonth(i)} style={{
-                padding:"5px 10px",borderRadius:16,fontFamily:"inherit",cursor:"pointer",fontSize:11,
-                fontWeight:joinMonth===i?700:400,transition:"all .12s",
+                padding:"4px 8px",borderRadius:14,fontFamily:"inherit",cursor:"pointer",fontSize:11,
+                fontWeight:joinMonth===i?700:400,transition:"all .12s",flexShrink:0,
                 border:`1.5px solid ${joinMonth===i?T.bl:T.border}`,
                 background:joinMonth===i?T.bl:"transparent",
                 color:joinMonth===i?"#fff":i===0?T.em:T.i2
@@ -559,7 +606,7 @@ export default function NewRegimeSalaryCalc(){
           {/* presets */}
           <div style={{marginBottom:14}}>
             <div style={{fontSize:11,fontWeight:600,color:T.i3,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Quick Presets (Base)</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            <div className="preset-row" style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               {PRESETS.map(p=><button key={p.l} onClick={()=>{setBaseStr(fN(p.b));setErPfStr("");}} style={{padding:"4px 12px",borderRadius:20,border:`1px solid ${tN(baseStr)===p.b?T.bl:T.border}`,background:tN(baseStr)===p.b?T.bBg:T.cv,color:tN(baseStr)===p.b?T.bl:T.i2,fontSize:12,cursor:"pointer",fontWeight:tN(baseStr)===p.b?600:400,fontFamily:"inherit"}}>{p.l}</button>)}
             </div>
           </div>
@@ -575,7 +622,7 @@ export default function NewRegimeSalaryCalc(){
                   <span style={{fontSize:13,fontWeight:800,color:T.ink,letterSpacing:"-0.02em",fontFamily:"'Sora',sans-serif"}}>Basic Salary %</span>
                   <span style={{fontSize:11,color:T.i3,marginLeft:7}}>sets PF &amp; allowances split</span>
                 </div>
-                <div style={{display:"flex",gap:12,fontSize:12}}>
+                <div className="basic-live" style={{display:"flex",gap:12,fontSize:12}}>
                   <span style={{color:T.i3}}>Basic&nbsp;
                     <span style={{fontWeight:800,color:T.bl,fontFamily:"'Courier New',monospace",fontSize:13}}>
                       {fi(baseA*basicPct/100/12)}
@@ -595,10 +642,10 @@ export default function NewRegimeSalaryCalc(){
 
             {/* ── Bonus / Variable Pay ── */}
             <div style={{borderRadius:14,border:`1.5px solid ${T.border}`,overflow:"hidden"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4,
                 padding:"11px 16px",background:`linear-gradient(105deg,${T.bg},${T.cv})`}}>
                 <span style={{fontSize:13,fontWeight:800,color:T.ink,letterSpacing:"-0.02em",fontFamily:"'Sora',sans-serif"}}>Bonus / Variable Pay</span>
-                <span style={{fontSize:11,color:T.i3}}>Annual only — excluded from monthly</span>
+                <span style={{fontSize:11,color:T.i3}}>Annual · excluded from monthly</span>
               </div>
               <div style={{padding:"12px 14px",background:T.cv,display:"flex",flexDirection:"column",gap:10}}>
                 {/* Slider row */}
@@ -639,7 +686,7 @@ export default function NewRegimeSalaryCalc(){
                 <span style={{marginLeft:"auto",fontSize:12,fontWeight:700,color:T.bl,fontFamily:"'Courier New',monospace"}}>{fi(bonusA)}</span>
               </div>
               <div style={{padding:"12px 14px",background:T.cv,display:"flex",flexDirection:"column",gap:10}}>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <div className="timing-row" style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {[["march","Once — March"],["sep_mar","Sep + Mar"],["oct_apr","Oct + Apr"],["custom","Custom"]].map(([v,l])=>{
                     const act=bSched===v;
                     return <button key={v} onClick={()=>setBSched(v)} style={{
@@ -704,10 +751,40 @@ export default function NewRegimeSalaryCalc(){
               </div>
             </div>}
 
-            {mode==="breakdown"&&<div>
-              <MoneyIn label="Employer PF" hint={`Auto: ${fi(erPfAuto)}`} val={erPfStr} set={setErPfStr} acc={T.em} ph={fN(Math.round(erPfAuto))}/>
-              <div style={{fontSize:11,color:T.i3,marginTop:4}}>Leave blank for auto (12% of Basic{pfCap?", ₹1,800/mo cap":""})</div>
-            </div>}
+            <div style={{background:T.bg,borderRadius:12,border:`1px solid ${T.border}`,overflow:"hidden"}}>
+                {/* Header row: label + auto value */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px"}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:T.ink,letterSpacing:"-0.01em"}}>Employer PF</div>
+                    <div style={{fontSize:11,color:T.i3,marginTop:2}}>
+                      {mode==="base_only"
+                        ? <>12% of Basic{pfCap?", capped ₹1,800/mo":""} — <strong style={{color:T.em}}>embedded inside your Base</strong>, exempt u/s 10(12)</>
+                        : <>12% of Basic{pfCap?", capped ₹1,800/mo":""} — <strong style={{color:T.em}}>added on top of Base</strong>, part of CTC</>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                    <div style={{fontSize:16,fontWeight:800,color:T.em,fontFamily:"'Courier New',monospace",letterSpacing:"-0.02em"}}>{fi(erPfAuto)}</div>
+                    <div style={{fontSize:10,color:T.i3,marginTop:1}}>per year · {fi(erPfAuto/12)}/mo</div>
+                  </div>
+                </div>
+                {/* Override checkbox — only for breakdown mode where ER PF is explicit CTC component */}
+                {mode==="breakdown"&&<div style={{borderTop:`1px solid ${T.border}`,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,
+                  background:erPfOverride?`${T.am}08`:T.cv,cursor:"pointer"}}
+                  onClick={()=>{setErPfOverride(o=>!o);if(erPfOverride)setErPfStr("");}}>
+                  <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${erPfOverride?T.am:T.b2}`,
+                    background:erPfOverride?T.am:"transparent",display:"flex",alignItems:"center",justifyContent:"center",
+                    flexShrink:0,transition:"all .15s"}}>
+                    {erPfOverride&&<span style={{color:"#fff",fontSize:12,lineHeight:1,fontWeight:700}}>✓</span>}
+                  </div>
+                  <div>
+                    <span style={{fontSize:12,fontWeight:600,color:erPfOverride?T.am:T.i2}}>My offer letter shows a different ER PF amount</span>
+                    <span style={{fontSize:11,color:T.i3,marginLeft:6}}>override auto-calculation</span>
+                  </div>
+                </div>}
+                {mode==="breakdown"&&erPfOverride&&<div style={{padding:"10px 14px",borderTop:`1px solid ${T.border}`,background:T.cv}}>
+                  <MoneyIn label="ER PF as per offer letter" hint="Annual amount" val={erPfStr} set={setErPfStr} acc={T.am} ph={fN(Math.round(erPfAuto))}/>
+                </div>}
+              </div>
 
             {/* ── PERKS ── */}
             <div style={{borderTop:`1px solid ${T.border}`,paddingTop:14,marginTop:2}}>
@@ -752,9 +829,12 @@ export default function NewRegimeSalaryCalc(){
 
             {/* CTC bar */}
             {baseA>0&&<div style={{background:T.bg,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                <span style={{fontSize:12,fontWeight:600,color:T.i2}}>Total CTC <span style={{fontWeight:400,color:T.i3,fontSize:11}}>{mode==="base_only"?"= Base + Bonus":"= Base + Bonus + ER PF"}</span></span>
-                <span style={{fontSize:18,fontWeight:800,color:T.ink,fontFamily:"'Courier New',monospace"}}>{fL(ctcBar)}</span>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,gap:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:T.i2}}>Total CTC</div>
+                  <div style={{fontSize:11,color:T.i3,marginTop:1}}>{mode==="base_only"?"Base + Bonus":"Base + Bonus + ER PF"}</div>
+                </div>
+                <span style={{fontSize:20,fontWeight:800,color:T.ink,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em",flexShrink:0}}>{fL(ctcBar)}</span>
               </div>
               {mode==="breakdown"
                 ?<CtcBar segs={[{l:"Base",v:baseA,c:T.bl},{l:"Bonus",v:bonusA,c:"#60A5FA"},{l:"ER PF",v:erPfDisp,c:T.em}]}/>
@@ -958,7 +1038,7 @@ export default function NewRegimeSalaryCalc(){
       {/* ── MONTHLY IN-HAND ── */}
       <div style={{background:"linear-gradient(135deg,#064E3B 0%,#065F46 60%,#047857 100%)",border:"none",borderRadius:20,padding:"22px 24px",boxShadow:T.sh3}}>
         <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:10}}>💰 Monthly In-Hand</div>
-        <div style={{fontSize:48,fontWeight:800,color:"#fff",fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em",lineHeight:1}}>{fi(r.inHandMnb)}</div>
+        <div className="inhand-big" style={{fontSize:48,fontWeight:800,color:"#fff",fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em",lineHeight:1}}>{fi(r.inHandMnb)}</div>
         <div style={{fontSize:13,color:"rgba(255,255,255,0.65)",marginTop:6,marginBottom:18}}>
           per month · bonus excluded &nbsp;·&nbsp;
           <strong style={{color:"rgba(255,255,255,0.9)"}}>{fL(r.inHandAPro)}</strong>
@@ -966,7 +1046,7 @@ export default function NewRegimeSalaryCalc(){
             ? <span style={{color:"rgba(255,255,255,0.45)",fontSize:11}}> this FY ({r.workedMonths} months · joined {MONTHS[joinMonth]})</span>
             : <span style={{color:"rgba(255,255,255,0.45)",fontSize:11}}> annual (full year)</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+        <div className="inhand-pills" style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
           {[[`${r.ihPct}%`,"In-hand / CTC","rgba(255,255,255,0.13)","rgba(255,255,255,0.95)","rgba(255,255,255,0.15)"],
             [`${r.effTax}%`,"Eff. Tax Rate","rgba(252,165,165,0.18)","#FCA5A5","rgba(252,165,165,0.2)"],
             [`${r.marginalRate}%`,"Marginal Rate","rgba(251,191,36,0.18)","#FBBF24","rgba(251,191,36,0.2)"],
@@ -986,7 +1066,7 @@ export default function NewRegimeSalaryCalc(){
         {npsOn&&<Row label="− Employer NPS 80CCD(2)" sub={`${npsPct}% of Basic`} val={`−${fi(r.npsA)}`} col={T.vi} indent/>}
         <Row label="Taxable Income" val={fi(r.taxable)} bold/>
         <div style={{margin:"14px 0 10px",background:T.bg,borderRadius:14,border:`1px solid ${T.border}`,overflow:"hidden",boxShadow:T.sh}}>
-          <div style={{padding:"10px 16px 7px",fontSize:11,fontWeight:700,color:T.am,textTransform:"uppercase",letterSpacing:"0.08em",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(to right,${T.aBg},transparent)`}}>📊 FY 2025–26 New Regime Slabs</div>
+          <div style={{padding:"10px 16px 7px",fontSize:11,fontWeight:700,color:T.am,textTransform:"uppercase",letterSpacing:"0.08em",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(to right,${T.aBg},transparent)`}}>📊 FY 2026–27 New Regime Slabs</div>
           <div style={{padding:"6px 4px 8px"}}>
             {SLABS.map(([lo,,range,rate],i)=><SlabRow key={range} range={range} rate={rate} active={r.taxable>lo} current={i===r.slabIdx&&r.taxable>0}/>)}
             <div style={{fontSize:11,color:T.i3,marginTop:6,paddingTop:6,borderTop:`1px solid ${T.border}`,paddingLeft:10}}>
@@ -1115,7 +1195,7 @@ export default function NewRegimeSalaryCalc(){
               ...(showTotal?[{key:"total",label:"Total",align:"right"}]:[]),
             ];
             const tdS={padding:"6px 6px",fontFamily:"'Courier New',monospace"};
-            return <div style={{marginTop:14,overflowX:"auto"}}>
+            return <div className="tbl-wrap" style={{marginTop:14,overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead><tr style={{borderBottom:`1.5px solid ${T.border}`}}>
                   {cols.map(col=><th key={col.key} style={{padding:"5px 6px",textAlign:col.align,fontWeight:600,color:T.i3,fontSize:11,whiteSpace:"nowrap"}}>{col.label}</th>)}
@@ -1147,7 +1227,7 @@ export default function NewRegimeSalaryCalc(){
       </>}
 
       <div style={{textAlign:"center",fontSize:11,color:T.i3,lineHeight:1.9}}>
-        Estimates only · New Tax Regime FY 2025–26 · EPFO PF wage ceiling ₹15,000/mo<br/>
+        Estimates only · New Tax Regime FY 2026–27 · EPFO PF wage ceiling ₹15,000/mo<br/>
         HRA + FBP + Other = Taxable Allowances (no HRA exemption in new regime)<br/>
         Surcharge: 10% (&gt;₹50L) · 15% (&gt;₹1Cr) · 25% (&gt;₹2Cr, new regime cap) · 4% Cess<br/>
         Gratuity (4.81% of Basic) paid separately after 5 yrs — not in CTC above
