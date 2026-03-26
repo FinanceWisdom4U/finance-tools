@@ -19,11 +19,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        env:
-          DISABLE_ESLINT_PLUGIN: true
 
       - name: Build React app
         run: npm run build
+        env:
+          DISABLE_ESLINT_PLUGIN: true
 
       # ── Build artifact upload ──────────────────────────────────────────────
       # Downloads the build/ folder as a zip from:
