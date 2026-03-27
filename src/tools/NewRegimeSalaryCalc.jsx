@@ -288,14 +288,22 @@ export default function NewRegimeSalaryCalc(){
     const specA=allowA;
     const ptA=pt?2400:0;
     const npsA=npsOn?Math.min(bA*npsPct/100,bA*.14):0;
+    // ── Sec 17(2)(vii): ER PF + ER NPS aggregate cap ₹7.5L ─────────────────
+    const retirementAggregate=erF+npsA;
+    const RETIRE_CAP=750000;
+    const retirementExcess=Math.max(0,retirementAggregate-RETIRE_CAP);
+    // NPS benefit is zero once ER PF alone ≥ cap
+    const npsEffectiveShelter=Math.max(0,Math.min(npsA,RETIRE_CAP-erF)); // NPS portion within cap
     // Total taxable perks (all months combined) affect annual tax
     const totalTaxPerks=perks.filter(p=>p.taxable).reduce((s,p)=>s+tN(p.amount),0);
     const totalExPerks =perks.filter(p=>!p.taxable).reduce((s,p)=>s+tN(p.amount),0);
     const txGross=payB+bonusA+totalTaxPerks;  // full taxable gross incl. perks
     const stdD=75000;
-    const taxable=Math.max(0,txGross-stdD-npsA);
+    // retirementExcess added back as taxable perquisite u/s 17(2)(vii)
+    const taxable=Math.max(0,txGross-stdD-npsA+retirementExcess);
     const taxA=calcTax(taxable);
-    const taxSaved=npsOn?calcTax(Math.max(0,txGross-stdD))-taxA:0;
+    // taxSaved: compare against scenario with no NPS (ER PF alone, cap still applies)
+    const taxSaved=npsOn?Math.max(0,calcTax(Math.max(0,txGross-stdD+Math.max(0,erF-RETIRE_CAP)))-taxA):0;
     const sr=srRate(taxable);
     const baseTx=slabTax(taxable);
     const preCess=taxA/1.04;
@@ -326,9 +334,9 @@ export default function NewRegimeSalaryCalc(){
     const taxablePro= Math.max(0, txGrossPro - stdDPro - npsAPro);
     // TDS projected on annual equivalent, then paid over worked months only
     // Employer projects: if this salary continues all year, annual tax = calcTax(annualised)
-    const annualisedTaxable = Math.max(0, payB + (bonusA>0?bonusA:0) + totalTaxPerks - stdD - npsA);
+    const annualisedTaxable = Math.max(0, payB + (bonusA>0?bonusA:0) + totalTaxPerks - stdD - npsA + retirementExcess);
     const taxAPro   = joinMonth === 0 ? taxA : Math.round(calcTax(annualisedTaxable) * frac);
-    const taxBase_  = Math.max(0, payB - stdD - npsA);
+    const taxBase_  = Math.max(0, payB - stdD - npsA + retirementExcess);
     const annTaxMnb = joinMonth === 0 ? calcTax(taxBase_) : Math.round(calcTax(taxBase_) * frac);
 
     // Monthly in-hand (regular months — base TDS)
@@ -344,6 +352,7 @@ export default function NewRegimeSalaryCalc(){
       taxA,taxM:taxA/12,taxable,stdD,sr,baseTx,surcharge,cess,
       totDA,totDM:totDA/12,inHandA,inHandAPro,inHandMnb,annTaxMnb,workedMonths,taxAPro,
       ctcA,txGross,
+      retirementAggregate,retirementExcess,npsEffectiveShelter,RETIRE_CAP,
       effTax:txGross>0?((taxA/txGross)*100).toFixed(1):"0",
       // Marginal rate = slab rate at top of taxable income + surcharge + cess
       marginalRate:(()=>{
@@ -514,12 +523,21 @@ export default function NewRegimeSalaryCalc(){
         .inhand-pills{grid-template-columns:1fr 1fr !important}
         .timing-row button{padding:5px 11px !important;font-size:11px !important}
         .preset-row button{padding:4px 10px !important;font-size:11px !important}
+        /* NPS cap panel — stack amounts on mobile */
+        .cap-header{flex-direction:column !important;align-items:flex-start !important;gap:4px !important}
+        .cap-header .cap-amt{font-size:15px !important}
+        /* Retirement cap meter — smaller font */
+        .retire-row{flex-wrap:wrap !important;gap:4px !important}
+        /* NPS deducted/saved cards */
+        .nps-cards{grid-template-columns:1fr 1fr !important}
+        .nps-cards .nps-card-val{font-size:17px !important}
       }
       @media(max-width:360px){
         .ctc-mode-tab .title{font-size:11px !important}
         .hdr-h1{font-size:14px !important}
         .inhand-big{font-size:28px !important}
         .main-wrap{padding:8px 8px 48px !important}
+        .nps-cards{grid-template-columns:1fr !important}
       }
     `}</style>
 
@@ -903,27 +921,79 @@ export default function NewRegimeSalaryCalc(){
             </div>
             <Tog on={npsOn} set={()=>{}} col={T.vi}/>
           </div>
-          {npsOn&&r&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{background:`linear-gradient(135deg,${T.vBg},#EDE9FE)`,border:`1.5px solid ${T.vi}22`,borderRadius:14,padding:"14px 16px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontSize:13,fontWeight:600,color:T.i2}}>NPS % of Basic</span>
-                <span style={{fontSize:15,fontWeight:800,color:T.vi,fontFamily:"'Courier New',monospace",letterSpacing:"-0.02em"}}>{npsPct}% <span style={{fontSize:12,fontWeight:500,color:T.i3}}>= {fi(r.npsM)}/mo</span></span>
+          {npsOn&&r&&(()=>{
+            const erPfOnly=r.erF;
+            const capRemaining=Math.max(0,r.RETIRE_CAP-erPfOnly);
+            const npsFullyWasted=erPfOnly>=r.RETIRE_CAP;
+            const npsPartlyWasted=!npsFullyWasted&&r.retirementExcess>0;
+            return <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{background:`linear-gradient(135deg,${T.vBg},#EDE9FE)`,border:`1.5px solid ${T.vi}22`,borderRadius:14,padding:"14px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <span style={{fontSize:13,fontWeight:600,color:T.i2}}>NPS % of Basic</span>
+                  <span style={{fontSize:15,fontWeight:800,color:T.vi,fontFamily:"'Courier New',monospace",letterSpacing:"-0.02em"}}>{npsPct}% <span style={{fontSize:12,fontWeight:500,color:T.i3}}>= {fi(r.npsM)}/mo</span></span>
+                </div>
+                <input type="range" min={1} max={14} value={npsPct} onChange={e=>setNpsPct(+e.target.value)} style={{width:"100%",accentColor:npsFullyWasted?T.ro:npsPartlyWasted?T.aR:T.vi,cursor:"pointer"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.i3,marginTop:4}}><span>1%</span><span style={{color:T.vi,fontWeight:600}}>Max 14% of Basic</span></div>
               </div>
-              <input type="range" min={1} max={14} value={npsPct} onChange={e=>setNpsPct(+e.target.value)} style={{width:"100%",accentColor:T.vi,cursor:"pointer"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.i3,marginTop:4}}><span>1%</span><span style={{color:T.vi,fontWeight:600}}>Max 14% of Basic</span></div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{background:"linear-gradient(135deg,#FFF1F1,#FFE4E4)",border:`1.5px solid ${T.ro}25`,borderRadius:12,padding:"12px 16px"}}>
-                <div style={{fontSize:10,color:T.ro,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:5}}>Deducted / year</div>
-                <div style={{fontSize:20,fontWeight:800,color:T.ro,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}>−{fL(r.npsA)}</div>
+
+              {/* ── Sec 17(2)(vii) cap status ── */}
+              {(()=>{
+                const pct=Math.min(100,(r.retirementAggregate/r.RETIRE_CAP)*100);
+                const barCol=npsFullyWasted?T.ro:npsPartlyWasted?T.aR:T.em;
+                return <div style={{borderRadius:14,overflow:"hidden",border:`1.5px solid ${barCol}30`,boxShadow:`0 2px 12px ${barCol}15`}}>
+                  <div style={{padding:"12px 14px 10px",background:`linear-gradient(105deg,${barCol}0d,transparent)`,borderBottom:`1px solid ${barCol}20`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:barCol,letterSpacing:"-0.01em"}}>Sec 17(2)(vii) — ₹7.5L Retirement Cap</div>
+                        <div style={{fontSize:11,color:T.i3,marginTop:1}}>ER PF + ER NPS aggregate limit · excess is taxable perquisite</div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+                        <div style={{fontSize:15,fontWeight:800,color:barCol,fontFamily:"'Courier New',monospace"}}>{fL(r.retirementAggregate)}</div>
+                        <div style={{fontSize:10,color:T.i3}}>of ₹7.5L cap</div>
+                      </div>
+                    </div>
+                    {/* progress bar */}
+                    <div style={{height:8,background:`${barCol}18`,borderRadius:6,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:barCol,borderRadius:6,transition:"width .4s ease",
+                        boxShadow:`0 0 8px ${barCol}60`}}/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.i3,marginTop:4}}>
+                      <span>ER PF: {fL(r.erF)}</span>
+                      <span style={{color:barCol,fontWeight:600}}>{pct.toFixed(0)}% of cap used</span>
+                      <span>₹7.5L cap</span>
+                    </div>
+                  </div>
+                  <div style={{padding:"10px 14px",background:npsFullyWasted?"#FFF1F1":npsPartlyWasted?"#FFFBEB":"#F0FDF4"}}>
+                    {npsFullyWasted&&<div style={{fontSize:12,color:T.ro,lineHeight:1.6}}>
+                      <strong>ER PF alone (₹{fL(r.erF)}) already exceeds ₹7.5L</strong> — your employer's NPS contribution gives <strong>zero tax benefit</strong>. The entire NPS amount (₹{fL(r.npsA)}) is added back as taxable perquisite. Consider negotiating a lower NPS % or redirecting to take-home.
+                    </div>}
+                    {npsPartlyWasted&&<div style={{fontSize:12,color:T.am,lineHeight:1.6}}>
+                      Only <strong style={{color:T.em}}>{fL(capRemaining)}</strong> of NPS is sheltered within the ₹7.5L cap.
+                      The remaining <strong style={{color:T.ro}}>{fL(r.retirementExcess)}</strong> is taxed as perquisite u/s 17(2)(vii).
+                      Reducing NPS to <strong>{Math.floor(capRemaining/r.bA*100)}% of Basic</strong> would maximise benefit with no wasted contribution.
+                    </div>}
+                    {!npsFullyWasted&&!npsPartlyWasted&&<div style={{fontSize:12,color:T.em,lineHeight:1.6}}>
+                      Within ₹7.5L cap — full NPS deduction applies u/s 80CCD(2). You have <strong>{fL(capRemaining)}</strong> remaining headroom.
+                    </div>}
+                  </div>
+                </div>;
+              })()}
+
+              <div className="nps-cards" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div style={{background:"linear-gradient(135deg,#FFF1F1,#FFE4E4)",border:`1.5px solid ${T.ro}25`,borderRadius:12,padding:"12px 16px"}}>
+                  <div style={{fontSize:10,color:T.ro,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:5}}>Deducted / year</div>
+                  <div className="nps-card-val" style={{fontSize:20,fontWeight:800,color:T.ro,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}>−{fL(r.npsA)}</div>
+                  {r.retirementExcess>0&&<div style={{fontSize:10,color:T.i3,marginTop:3}}>{fL(r.npsEffectiveShelter)} effective · {fL(r.retirementExcess)} taxed back</div>}
+                </div>
+                <div style={{background:r.taxSaved>0?"linear-gradient(135deg,#ECFDF5,#D1FAE5)":"linear-gradient(135deg,#F1F5F9,#E2E8F0)",border:`1.5px solid ${r.taxSaved>0?T.em:"#CBD5E1"}25`,borderRadius:12,padding:"12px 16px"}}>
+                  <div style={{fontSize:10,color:r.taxSaved>0?T.em:"#94A3B8",fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:5}}>Tax saved / year</div>
+                  <div className="nps-card-val" style={{fontSize:20,fontWeight:800,color:r.taxSaved>0?T.em:"#94A3B8",fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}>{r.taxSaved>0?`+${fL(r.taxSaved)}`:"₹0"}</div>
+                  {r.taxSaved===0&&<div style={{fontSize:10,color:T.ro,marginTop:3}}>Cap breached — no benefit</div>}
+                </div>
               </div>
-              <div style={{background:"linear-gradient(135deg,#ECFDF5,#D1FAE5)",border:`1.5px solid ${T.em}25`,borderRadius:12,padding:"12px 16px"}}>
-                <div style={{fontSize:10,color:T.em,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:5}}>Tax saved / year</div>
-                <div style={{fontSize:20,fontWeight:800,color:T.em,fontFamily:"'Courier New',monospace",letterSpacing:"-0.03em"}}>+{fL(r.taxSaved)}</div>
-              </div>
-            </div>
-            <div style={{fontSize:11,color:T.am,padding:"9px 14px",background:"linear-gradient(to right,#FFFBEB,#FEF3C7)",borderRadius:10,borderLeft:`4px solid ${T.aR}`,boxShadow:`0 2px 8px ${T.aR}15`}}>⚠️ NPS corpus locked till age 60 · 40% must be annuitised at retirement</div>
-          </div>}
+              <div style={{fontSize:11,color:T.am,padding:"9px 14px",background:"linear-gradient(to right,#FFFBEB,#FEF3C7)",borderRadius:10,borderLeft:`4px solid ${T.aR}`,boxShadow:`0 2px 8px ${T.aR}15`}}>⚠️ NPS corpus locked till age 60 · 40% must be annuitised at retirement</div>
+            </div>;
+          })()}
         </div>
       </Card>
 
@@ -1063,7 +1133,11 @@ export default function NewRegimeSalaryCalc(){
         <Row label="Annual Gross (Base + Bonus)" sub="All allowances fully taxable in new regime" val={fi(baseA+bonusA)}/>
         {mode==="base_only"&&<Row label="ER PF (exempt u/s 10(12))" val={`−${fi(r.erF)}`} col={T.i3} indent/>}
         <Row label="− Standard Deduction" sub="₹75,000 flat" val={`−${fi(r.stdD)}`} col={T.em} indent/>
-        {npsOn&&<Row label="− Employer NPS 80CCD(2)" sub={`${npsPct}% of Basic`} val={`−${fi(r.npsA)}`} col={T.vi} indent/>}
+        {npsOn&&<Row label="− Employer NPS 80CCD(2)" sub={`${npsPct}% of Basic · u/s 80CCD(2)`} val={`−${fi(r.npsA)}`} col={T.vi} indent/>}
+        {r.retirementExcess>0&&<Row
+          label="+ Sec 17(2)(vii) Perquisite"
+          sub={`ER PF ${fL(r.erF)}${r.npsA>0?` + NPS ${fL(r.npsA)}`:""}  = ${fL(r.retirementAggregate)} exceeds ₹7.5L cap — excess added back as taxable`}
+          val={`+${fi(r.retirementExcess)}`} col={T.ro} indent/>}
         <Row label="Taxable Income" val={fi(r.taxable)} bold/>
         <div style={{margin:"14px 0 10px",background:T.bg,borderRadius:14,border:`1px solid ${T.border}`,overflow:"hidden",boxShadow:T.sh}}>
           <div style={{padding:"10px 16px 7px",fontSize:11,fontWeight:700,color:T.am,textTransform:"uppercase",letterSpacing:"0.08em",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(to right,${T.aBg},transparent)`}}>📊 FY 2026–27 New Regime Slabs</div>
@@ -1086,18 +1160,52 @@ export default function NewRegimeSalaryCalc(){
       {/* ── RETIREMENT ── */}
       {(()=>{
         const tot=r.erF+r.eeA+r.npsA;
+        const capPct=Math.min(100,(r.retirementAggregate/r.RETIRE_CAP)*100);
+        const capExceeded=r.retirementExcess>0;
+        const capBarCol=capExceeded?T.ro:capPct>=80?T.aR:T.em;
         return <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 22px",borderBottom:`1px solid ${T.border}`,background:"linear-gradient(105deg,#ECFDF5,#F0FDF9)"}}>
             <div style={{width:28,height:28,borderRadius:7,background:T.em+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏛️</div>
             <span style={{fontSize:13,fontWeight:700,color:T.ink}}>Annual Retirement Savings</span>
+            {capExceeded&&<span style={{marginLeft:8,fontSize:10,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:"#fff",background:T.ro,padding:"3px 9px",borderRadius:20}}>7.5L Cap Hit</span>}
             <span style={{marginLeft:"auto",fontSize:14,fontWeight:800,color:T.em,fontFamily:"'Courier New',monospace"}}>{fL(tot)}</span>
           </div>
           <div style={{padding:"14px 20px 16px"}}>
             <SBar segs={[{l:"ER PF",v:r.erF,c:"#10B981"},{l:"EE PF",v:r.eeA,c:T.bl},{l:"NPS",v:r.npsA,c:T.vi}]} h={16}/>
+
+            {/* ── 7.5L cap meter ── */}
+            <div style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:`1.5px solid ${capBarCol}30`,background:`${capBarCol}07`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div>
+                  <span style={{fontSize:12,fontWeight:700,color:capBarCol}}>Sec 17(2)(vii) Employer Cap</span>
+                  <span style={{fontSize:11,color:T.i3,marginLeft:6}}>ER PF + ER NPS</span>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <span style={{fontSize:13,fontWeight:800,color:capBarCol,fontFamily:"'Courier New',monospace"}}>{fL(r.retirementAggregate)}</span>
+                  <span style={{fontSize:11,color:T.i3}}> / ₹7.5L</span>
+                </div>
+              </div>
+              <div style={{height:10,background:`${capBarCol}18`,borderRadius:6,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.min(capPct,100)}%`,background:capExceeded?`linear-gradient(90deg,${T.aR},${T.ro})`:capPct>=80?T.aR:T.em,borderRadius:6,transition:"width .4s",position:"relative"}}>
+                  {capPct>=100&&<div style={{position:"absolute",right:0,top:0,bottom:0,width:4,background:"rgba(255,255,255,0.5)",borderRadius:"0 6px 6px 0"}}/>}
+                </div>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.i3,marginTop:5}}>
+                <span>ER PF: <strong style={{color:"#10B981"}}>{fL(r.erF)}</strong>{r.npsA>0&&<> · NPS: <strong style={{color:T.vi}}>{fL(r.npsA)}</strong></>}</span>
+                <span style={{color:capBarCol,fontWeight:700}}>{capPct.toFixed(0)}% used</span>
+              </div>
+              {capExceeded&&<div style={{marginTop:8,padding:"8px 11px",borderRadius:8,background:T.rBg,border:`1px solid ${T.ro}25`,fontSize:11,color:T.ro,lineHeight:1.6}}>
+                <strong>₹{fL(r.retirementExcess)} added as taxable perquisite</strong> in your income · increases tax by approx. {fL(calcTax(r.taxable)-calcTax(Math.max(0,r.taxable-r.retirementExcess)))}
+              </div>}
+              {!capExceeded&&<div style={{marginTop:6,fontSize:11,color:T.em}}>
+                ✓ Within cap — all employer contributions fully sheltered
+              </div>}
+            </div>
+
             <div style={{marginTop:12}}>
               {[["Employer PF (ER)",r.erF,r.erM,"#10B981",mode==="base_only"?"In Base, goes to EPF":"On top of Base, goes to EPF"],
                 ["Employee PF (EE)",r.eeA,r.eeM,T.bl,"Deducted from salary, goes to EPF"],
-                ...(r.npsA>0?[["Employer NPS",r.npsA,r.npsM,T.vi,`${npsPct}% of Basic, u/s 80CCD(2)`]]:[])]
+                ...(r.npsA>0?[["Employer NPS",r.npsA,r.npsM,T.vi,`${npsPct}% of Basic · u/s 80CCD(2)${r.retirementExcess>0?" · partially taxed back":""}`]]:[])]
                 .map(([l,ann,mon,c,sub],i,arr)=>
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<arr.length-1?`1px solid ${T.border}`:"none"}}>
                   <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
@@ -1230,6 +1338,7 @@ export default function NewRegimeSalaryCalc(){
         Estimates only · New Tax Regime FY 2026–27 · EPFO PF wage ceiling ₹15,000/mo<br/>
         HRA + FBP + Other = Taxable Allowances (no HRA exemption in new regime)<br/>
         Surcharge: 10% (&gt;₹50L) · 15% (&gt;₹1Cr) · 25% (&gt;₹2Cr, new regime cap) · 4% Cess<br/>
+        Sec 17(2)(vii): ER PF + ER NPS + Superannuation &gt; ₹7.5L/yr — excess taxable as perquisite<br/>
         Gratuity (4.81% of Basic) paid separately after 5 yrs — not in CTC above
       </div>
     </div>
