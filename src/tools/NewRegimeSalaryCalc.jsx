@@ -601,9 +601,8 @@ export default function NewRegimeSalaryCalc(){
         {/* ── CTC mode selector ── */}
         <div style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
           {/* Label row */}
-          <div style={{padding:"9px 14px 8px",display:"flex",alignItems:"center",gap:8,borderBottom:`1px solid ${T.border}40`}}>
-            <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.09em",textTransform:"uppercase",whiteSpace:"nowrap"}}>CTC Structure Types</span>
-            <div style={{flex:1,height:"1px",background:T.border}}/>
+          <div style={{padding:"9px 14px 8px",borderBottom:`1px solid ${T.border}40`}}>
+            <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.09em",textTransform:"uppercase"}}>CTC Structure Types</span>
           </div>
           {/* Tab buttons */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
