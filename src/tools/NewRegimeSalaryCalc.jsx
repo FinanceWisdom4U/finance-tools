@@ -196,28 +196,44 @@ function BarChart({data}){
   const[hov,setHov]=useState(null); if(!data?.length)return null;
   const mx=Math.max(...data.map(d=>d.total),1);
   const f_=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n);
+  const d_=hov!==null?data[hov]:null;
+  // Tooltip rendered at top of chart (not above each bar) — avoids overflow-x:auto clipping
+  const TIP_H=d_?(d_.bonus>0||d_.hasPerk?86:66):0;
   return <div style={{overflowX:"auto"}}>
-    <div style={{minWidth:500,padding:"0 4px"}}>
-      <div style={{display:"flex",alignItems:"flex-end",gap:3,height:200,position:"relative"}}>
+    <div style={{minWidth:500,padding:"0 4px",position:"relative"}}>
+      {/* ── floating tooltip pinned to top of chart area ── */}
+      {d_&&<div style={{
+        position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",
+        zIndex:10,background:T.ink,color:"#fff",borderRadius:12,
+        padding:"9px 14px",fontSize:11,whiteSpace:"nowrap",
+        boxShadow:"0 4px 20px rgba(0,0,0,.28)",pointerEvents:"none",
+        display:"flex",gap:16,alignItems:"flex-start"
+      }}>
+        <div>
+          <div style={{fontWeight:800,marginBottom:3,color:"#E2E8F0",letterSpacing:"0.02em"}}>{MONTHS[hov]}</div>
+          <div>Salary <strong style={{color:"#6EE7B7"}}>{f_(d_.inHand)}</strong></div>
+          {d_.bonus>0&&<div>Bonus <strong style={{color:"#FCD34D"}}>{f_(d_.bonus)}</strong></div>}
+          {d_.hasPerk&&<div>Perk <strong style={{color:"#FDE68A"}}>{f_(d_.perkNet)}</strong></div>}
+        </div>
+        <div>
+          <div style={{color:"#FCA5A5",marginBottom:3}}>TDS <strong>{f_(d_.tds)}</strong></div>
+          <div style={{paddingTop:3,borderTop:"1px solid rgba(255,255,255,.2)"}}>
+            Total <strong style={{color:"#fff"}}>{f_(d_.total)}</strong>
+          </div>
+        </div>
+      </div>}
+      <div style={{display:"flex",alignItems:"flex-end",gap:3,height:200,position:"relative",marginTop:TIP_H>0?TIP_H+8:8}}>
         <div style={{position:"absolute",left:0,top:0,bottom:0,width:2,background:T.border}}/>
         {data.map((d,i)=>{
           const iH=(d.inHand/mx)*170,bH=(d.bonus/mx)*170,pH=(d.perkNet/mx)*170,hv=hov===i;
           return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",position:"relative"}}
             onMouseEnter={()=>setHov(i)} onMouseLeave={()=>setHov(null)}>
-            {hv&&<div style={{position:"absolute",bottom:"100%",zIndex:10,background:T.ink,color:"#fff",borderRadius:10,padding:"8px 12px",fontSize:11,whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,.2)",marginBottom:4,left:"50%",transform:"translateX(-50%)"}}>
-              <div style={{fontWeight:700,marginBottom:3}}>{MONTHS[i]}</div>
-              <div>Salary: <strong>{f_(d.inHand)}</strong></div>
-              {d.bonus>0&&<div>Bonus: <strong style={{color:"#6EE7B7"}}>{f_(d.bonus)}</strong></div>}
-              {d.hasPerk&&<div>Perk: <strong style={{color:"#FDE68A"}}>{f_(d.perkNet)}</strong>{d.perkLabels?.length>0&&` · ${d.perkLabels.join(", ")}`}</div>}
-              <div style={{color:"#FCA5A5"}}>TDS: {f_(d.tds)}</div>
-              <div style={{marginTop:3,paddingTop:3,borderTop:"1px solid rgba(255,255,255,.2)"}}>Total: <strong>{f_(d.total)}</strong></div>
-            </div>}
             <div style={{width:"100%",position:"relative",display:"flex",flexDirection:"column",justifyContent:"flex-end",height:170}}>
               <div style={{width:"100%",height:iH,background:hv?"#059669":T.em,borderRadius:(bH>0||pH>0)?"0":"4px 4px 0 0",transition:"all .15s"}}/>
               {bH>0&&<div style={{position:"absolute",bottom:iH,width:"100%",height:bH,background:hv?"#34D399":"#6EE7B7",borderRadius:pH>0?"0":"4px 4px 0 0"}}/>}
               {pH>0&&<div style={{position:"absolute",bottom:iH+bH,width:"100%",height:pH,background:hv?"#F59E0B":"#FDE68A",borderRadius:"4px 4px 0 0"}}/>}
             </div>
-            <div style={{fontSize:10,marginTop:3,color:d.hasBonus?T.bl:d.hasPerk?T.aR:T.i3,fontWeight:(d.hasBonus||d.hasPerk)?700:400}}>
+            <div style={{fontSize:10,marginTop:3,color:hv?T.em:d.hasBonus?T.bl:d.hasPerk?T.aR:T.i3,fontWeight:hv||(d.hasBonus||d.hasPerk)?700:400}}>
               {MONTHS[i]}{d.hasPerk&&!d.hasBonus?" 🎁":""}
             </div>
           </div>;
@@ -742,10 +758,10 @@ export default function NewRegimeSalaryCalc(){
                   {/* month picker(s) */}
                   {(customTwo?[[`Bonus month`,cm1,setCm1,bSplit],[`Second month`,cm2,setCm2,100-bSplit]]:[[`Bonus month`,cm1,setCm1,100]]).map(([l,v,s,pct])=>
                     <div key={l}>
-                      <div style={{fontSize:12,fontWeight:600,color:T.i2,marginBottom:7}}>
-                        {l}
-                        {customTwo&&<span style={{marginLeft:6,fontWeight:800,color:T.bl,fontFamily:"'Courier New',monospace"}}>{pct}%</span>}
-                        <span style={{color:T.i3,fontWeight:400,marginLeft:4}}>= {fi(bonusA*(customTwo?pct/100:1))}</span>
+                      <div style={{fontSize:12,fontWeight:600,color:T.i2,marginBottom:7,display:"flex",alignItems:"center",flexWrap:"wrap",gap:4}}>
+                        <span>{l}</span>
+                        <span style={{fontWeight:800,color:T.bl,fontFamily:"'Courier New',monospace",background:T.bBg,padding:"1px 7px",borderRadius:6,fontSize:11}}>{customTwo?`${pct}%`:"100%"}</span>
+                        <span style={{color:T.i3,fontWeight:400}}>= {fi(bonusA*(customTwo?pct/100:1))}</span>
                       </div>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                         {MONTHS.map((m,i)=><button key={i} onClick={()=>s(i)} style={{
@@ -936,8 +952,8 @@ export default function NewRegimeSalaryCalc(){
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.i3,marginTop:4}}><span>1%</span><span style={{color:T.vi,fontWeight:600}}>Max 14% of Basic</span></div>
               </div>
 
-              {/* ── Sec 17(2)(vii) cap status ── */}
-              {(()=>{
+              {/* ── Sec 17(2)(vii) cap status — only when cap is reachable at max NPS ── */}
+              {(r.erF+r.bA*0.14>r.RETIRE_CAP||r.retirementExcess>0)&&(()=>{
                 const pct=Math.min(100,(r.retirementAggregate/r.RETIRE_CAP)*100);
                 const barCol=npsFullyWasted?T.ro:npsPartlyWasted?T.aR:T.em;
                 return <div style={{borderRadius:14,overflow:"hidden",border:`1.5px solid ${barCol}30`,boxShadow:`0 2px 12px ${barCol}15`}}>
@@ -1163,6 +1179,9 @@ export default function NewRegimeSalaryCalc(){
         const capPct=Math.min(100,(r.retirementAggregate/r.RETIRE_CAP)*100);
         const capExceeded=r.retirementExcess>0;
         const capBarCol=capExceeded?T.ro:capPct>=80?T.aR:T.em;
+        // Only show cap meter when this person's salary makes the cap relevant:
+        // either ER PF alone exceeds cap, OR even at max NPS 14%, aggregate could breach it
+        const showCapMeter=r.erF>r.RETIRE_CAP||(r.erF+r.bA*0.14>r.RETIRE_CAP);
         return <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 22px",borderBottom:`1px solid ${T.border}`,background:"linear-gradient(105deg,#ECFDF5,#F0FDF9)"}}>
             <div style={{width:28,height:28,borderRadius:7,background:T.em+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏛️</div>
@@ -1173,8 +1192,8 @@ export default function NewRegimeSalaryCalc(){
           <div style={{padding:"14px 20px 16px"}}>
             <SBar segs={[{l:"ER PF",v:r.erF,c:"#10B981"},{l:"EE PF",v:r.eeA,c:T.bl},{l:"NPS",v:r.npsA,c:T.vi}]} h={16}/>
 
-            {/* ── 7.5L cap meter ── */}
-            <div style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:`1.5px solid ${capBarCol}30`,background:`${capBarCol}07`}}>
+            {/* ── 7.5L cap meter — only shown when cap is reachable ── */}
+            {showCapMeter&&<div style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:`1.5px solid ${capBarCol}30`,background:`${capBarCol}07`}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <div>
                   <span style={{fontSize:12,fontWeight:700,color:capBarCol}}>Sec 17(2)(vii) Employer Cap</span>
@@ -1200,7 +1219,7 @@ export default function NewRegimeSalaryCalc(){
               {!capExceeded&&<div style={{marginTop:6,fontSize:11,color:T.em}}>
                 ✓ Within cap — all employer contributions fully sheltered
               </div>}
-            </div>
+            </div>}
 
             <div style={{marginTop:12}}>
               {[["Employer PF (ER)",r.erF,r.erM,"#10B981",mode==="base_only"?"In Base, goes to EPF":"On top of Base, goes to EPF"],
@@ -1212,14 +1231,14 @@ export default function NewRegimeSalaryCalc(){
                     <div style={{width:9,height:9,borderRadius:3,background:c,flexShrink:0,marginTop:3}}/>
                     <div><div style={{fontSize:13,fontWeight:500,color:T.ink}}>{l}</div><div style={{fontSize:11,color:T.i3,marginTop:1}}>{sub}</div></div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:14,fontWeight:700,color:c,fontFamily:"'Courier New',monospace"}}>{fL(ann)}<span style={{fontSize:11,color:T.i3}}>/yr</span></div>
-                    <div style={{fontSize:11,color:T.i3}}>{fi(mon)}/mo</div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:14,fontWeight:700,color:c,fontFamily:"'Courier New',monospace",whiteSpace:"nowrap"}}>{fL(ann)}<span style={{fontSize:11,color:T.i3}}>/yr</span></div>
+                    <div style={{fontSize:11,color:T.i3,whiteSpace:"nowrap"}}>{fi(mon)}/mo</div>
                   </div>
                 </div>)}
               <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0 0",marginTop:4,borderTop:`1.5px solid ${T.border}`}}>
                 <div><div style={{fontSize:13,fontWeight:700,color:T.ink}}>Total Retirement Savings</div><div style={{fontSize:11,color:T.i3,marginTop:1}}>EPF corpus (ER+EE){r.npsA>0?" + NPS":""} — locked till 58/60</div></div>
-                <div style={{textAlign:"right"}}><div style={{fontSize:16,fontWeight:800,color:T.em,fontFamily:"'Courier New',monospace"}}>{fL(tot)}/yr</div><div style={{fontSize:12,color:T.i3}}>{fi(tot/12)}/mo</div></div>
+                <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:16,fontWeight:800,color:T.em,fontFamily:"'Courier New',monospace",whiteSpace:"nowrap"}}>{fL(tot)}/yr</div><div style={{fontSize:12,color:T.i3,whiteSpace:"nowrap"}}>{fi(tot/12)}/mo</div></div>
               </div>
             </div>
           </div>
