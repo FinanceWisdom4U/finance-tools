@@ -679,7 +679,7 @@ export default function NewRegimeSalaryCalc(){
           <div style={{fontSize:12,color:T.i3,padding:"8px 12px",background:T.bg,borderRadius:8,marginBottom:14,lineHeight:1.6,borderLeft:`3px solid ${mode==="breakdown"?T.bl:T.em}`}}>
             {mode==="breakdown"
               ?<>Your offer letter shows <strong style={{color:T.bl}}>CTC = Base + ER&nbsp;PF + Bonus</strong> as separate line items.</>
-              :<>Your offer letter shows <strong style={{color:T.em}}>Base already includes ER&nbsp;PF</strong> — only Base + Bonus listed.</>}
+              :<>Your offer letter shows <strong style={{color:T.em}}>CTC = Base + Bonus</strong> — ER&nbsp;PF is embedded inside Base, not listed separately.</>}
           </div>
 
           {/* Joining month */}
