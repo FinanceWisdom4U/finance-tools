@@ -599,6 +599,15 @@ export default function NewRegimeSalaryCalc(){
       {/* ── INPUT ── */}
       <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
         {/* ── CTC mode selector ── */}
+        <div style={{padding:"8px 14px 6px",background:T.bg,borderBottom:`1px solid ${T.border}40`,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.07em",textTransform:"uppercase",whiteSpace:"nowrap"}}>CTC Structure Type</span>
+          <div style={{flex:1,height:"1px",background:T.border}}/>
+          <span style={{fontSize:10,color:T.i3}}>
+            <span style={{color:T.bl,fontWeight:600}}>Base + ER PF + Bonus</span>
+            <span style={{color:T.i4,margin:"0 6px"}}>|</span>
+            <span style={{color:T.em,fontWeight:600}}>Base (incl. ER PF) + Bonus</span>
+          </span>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderBottom:`1px solid ${T.border}`}}>
           {[
             {v:"breakdown", label:"CTC Breakdown",
@@ -631,28 +640,26 @@ export default function NewRegimeSalaryCalc(){
                           cursor:"help",display:"inline-flex",alignItems:"center",gap:2
                         }}>{ch.t}<span style={{fontSize:8,opacity:.75}}>ⓘ</span></span>
                         {erPfTip===v&&<div onClick={e=>e.stopPropagation()} style={{
-                          position:"absolute",top:"calc(100% + 6px)",left:"50%",
-                          transform:"translateX(-50%)",zIndex:50,
+                          position:"absolute",top:"calc(100% + 6px)",
+                          /* anchor left for left tab, right for right tab — stays on screen */
+                          ...(v==="breakdown"?{left:0}:{right:0}),
+                          zIndex:50,
                           background:T.ink,color:"#fff",borderRadius:10,
                           padding:"9px 12px",fontSize:11,lineHeight:1.55,
                           boxShadow:"0 6px 24px rgba(0,0,0,.28)",
-                          width:210,whiteSpace:"normal",
+                          width:200,whiteSpace:"normal",
                           border:"1px solid rgba(255,255,255,.1)"
                         }}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
                             <span style={{fontSize:10,fontWeight:800,background:"#6EE7B730",color:"#6EE7B7",padding:"2px 7px",borderRadius:5,letterSpacing:"0.05em"}}>ER = Employer</span>
                           </div>
                           <div style={{fontWeight:700,marginBottom:3,color:"#fff"}}>ER PF — Employer Provident Fund</div>
-                          <div style={{color:"rgba(255,255,255,.8)"}}>Your company pays <strong style={{color:"#FCD34D"}}>12% of your Basic</strong> salary into your EPF account every month — this is over and above your own PF deduction.</div>
+                          <div style={{color:"rgba(255,255,255,.8)"}}>Your company pays <strong style={{color:"#FCD34D"}}>12% of your Basic</strong> salary into your EPF account every month — over and above your own PF deduction.</div>
                           <div style={{marginTop:5,color:"#FCA5A5",fontSize:10}}>
                             {v==="breakdown"
                               ?"Listed as a separate line in your offer letter — on top of Base."
                               :"Already bundled inside your Base salary amount."}
                           </div>
-                          {/* arrow */}
-                          <div style={{position:"absolute",top:-5,left:"50%",transform:"translateX(-50%)",
-                            width:10,height:10,background:T.ink,border:"1px solid rgba(255,255,255,.1)",
-                            borderRight:"none",borderBottom:"none",transform:"translateX(-50%) rotate(45deg)"}}/>
                         </div>}
                       </span>
                     /* ── regular chip ── */
