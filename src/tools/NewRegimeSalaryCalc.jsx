@@ -597,16 +597,43 @@ export default function NewRegimeSalaryCalc(){
 
       {/* ── INPUT ── */}
       <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
-          {[["breakdown","📦 CTC Breakdown","Base + Bonus + ER PF on top"],["base_only","🏷️ Base + Bonus Only","ER PF embedded in Base"]].map(([v,title,sub])=>
-            <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab" style={{padding:"11px 14px",border:"none",borderBottom:`3px solid ${mode===v?T.bl:"transparent"}`,background:mode===v?T.bBg:T.bg,cursor:"pointer",textAlign:"left",borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",fontFamily:"inherit"}}>
-              <div className="title" style={{fontSize:13,fontWeight:800,color:mode===v?T.bl:T.i2,letterSpacing:'-0.02em'}}>{title}</div>
-              <div className="sub" style={{fontSize:11,color:mode===v?T.bl+'99':T.i3,marginTop:2,fontWeight:mode===v?500:400}}>{sub}</div>
-            </button>)}
+        {/* ── CTC mode selector ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderBottom:`1px solid ${T.border}`}}>
+          {[
+            {v:"breakdown", label:"CTC Breakdown",
+             chips:[{t:"Base",c:T.bl},{t:"ER PF",c:T.em,small:true},{t:"Bonus",c:"#60A5FA"}]},
+            {v:"base_only",  label:"Base Only",
+             chips:[{t:"Base",c:T.bl},{t:"(incl. ER PF)",c:T.em,small:true},{t:"Bonus",c:"#60A5FA"}]},
+          ].map(({v,label,chips})=>{
+            const act=mode===v;
+            return <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab"
+              style={{padding:"11px 12px 10px",border:"none",borderBottom:`3px solid ${act?T.bl:"transparent"}`,
+                background:act?T.bBg:T.bg,cursor:"pointer",textAlign:"left",fontFamily:"inherit",
+                borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",transition:"background .15s"}}>
+              <div style={{fontSize:13,fontWeight:800,color:act?T.bl:T.i2,letterSpacing:"-0.025em",marginBottom:5}}>
+                {label}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"3px 2px"}}>
+                {chips.map((ch,ci)=>[
+                  ci>0&&<span key={`p${ci}`} style={{fontSize:10,color:T.i4,padding:"0 1px"}}>+</span>,
+                  <span key={ch.t} style={{
+                    fontSize:ch.small?9:10,fontWeight:700,
+                    color:act?(ch.small?"#fff":T.bl):T.i3,
+                    background:act?(ch.small?T.em:T.bl+"18"):"transparent",
+                    border:`1px solid ${act?(ch.small?T.em:T.bl+"50"):T.border}`,
+                    padding:ch.small?"1px 5px":"1px 6px",
+                    borderRadius:4,whiteSpace:"nowrap",letterSpacing:"0.01em"
+                  }}>{ch.t}</span>
+                ])}
+              </div>
+            </button>;
+          })}
         </div>
         <div style={{padding:"14px 20px 18px"}}>
           <div style={{fontSize:12,color:T.i3,padding:"8px 12px",background:T.bg,borderRadius:8,marginBottom:14,lineHeight:1.6,borderLeft:`3px solid ${mode==="breakdown"?T.bl:T.em}`}}>
-            {mode==="breakdown"?<><strong style={{color:T.bl}}>CTC = Base + Bonus + ER PF</strong> — offer letter includes ER PF in the total.</>:<><strong style={{color:T.em}}>Base = Basic + Taxable Allowances + ER PF</strong> — ER PF embedded inside Base.</>}
+            {mode==="breakdown"
+              ?<>Your offer letter shows <strong style={{color:T.bl}}>CTC = Base + ER&nbsp;PF + Bonus</strong> as separate line items.</>
+              :<>Your offer letter shows <strong style={{color:T.em}}>Base already includes ER&nbsp;PF</strong> — only Base + Bonus listed.</>}
           </div>
 
           {/* Joining month */}
