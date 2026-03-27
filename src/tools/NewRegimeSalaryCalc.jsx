@@ -392,6 +392,8 @@ export default function NewRegimeSalaryCalc(){
       if(bSched==="march")allocs=[{idx:11,f:1}];
       else if(bSched==="sep_mar")allocs=[{idx:5,f:bSplit/100},{idx:11,f:1-bSplit/100}];
       else if(bSched==="oct_apr")allocs=[{idx:6,f:bSplit/100},{idx:0,f:1-bSplit/100}];
+      else if(bSched==="quarterly")allocs=[{idx:2,f:.25},{idx:5,f:.25},{idx:8,f:.25},{idx:11,f:.25}]; // Jun Sep Dec Mar
+      else if(bSched==="monthly")allocs=Array.from({length:12},(_,i)=>({idx:i,f:1/12}));
       else if(customTwo) allocs=[{idx:cm1,f:bSplit/100},{idx:cm2,f:1-bSplit/100}];
       else allocs=[{idx:cm1,f:1.0}];   // single custom month = 100%
       allocs.forEach(a=>events.push({idx:a.idx,amount:bonusA*a.f,type:"bonus",label:"Bonus"}));
@@ -488,7 +490,7 @@ export default function NewRegimeSalaryCalc(){
     });
   },[r,bonusA,bSched,bSplit,cm1,cm2,customTwo,perks,dedns,mode,joinMonth]);
 
-  const isTwice=bSched!=="march"&&bonusA>0;
+  const isTwice=(bSched==="sep_mar"||bSched==="oct_apr")&&bonusA>0;
 
   return <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at top,#EDE9E3 0%,${T.bg} 60%)`,fontFamily:"'Outfit',sans-serif",color:T.ink}}>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"/>
@@ -780,7 +782,7 @@ export default function NewRegimeSalaryCalc(){
               </div>
               <div style={{padding:"12px 14px",background:T.cv,display:"flex",flexDirection:"column",gap:10}}>
                 <div className="timing-row" style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {[["march","Once — March"],["sep_mar","Sep + Mar"],["oct_apr","Oct + Apr"],["custom","Custom"]].map(([v,l])=>{
+                  {[["march","Once — Mar"],["sep_mar","Sep + Mar"],["oct_apr","Oct + Apr"],["quarterly","Quarterly"],["monthly","Monthly"],["custom","Custom"]].map(([v,l])=>{
                     const act=bSched===v;
                     return <button key={v} onClick={()=>setBSched(v)} style={{
                       padding:"6px 16px",borderRadius:20,fontFamily:"inherit",cursor:"pointer",
