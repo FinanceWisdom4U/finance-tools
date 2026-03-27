@@ -599,16 +599,14 @@ export default function NewRegimeSalaryCalc(){
       {/* ── INPUT ── */}
       <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
         {/* ── CTC mode selector ── */}
-        <div style={{padding:"8px 14px 6px",background:T.bg,borderBottom:`1px solid ${T.border}40`,display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.07em",textTransform:"uppercase",whiteSpace:"nowrap"}}>CTC Structure Type</span>
-          <div style={{flex:1,height:"1px",background:T.border}}/>
-          <span style={{fontSize:10,color:T.i3}}>
-            <span style={{color:T.bl,fontWeight:600}}>Base + ER PF + Bonus</span>
-            <span style={{color:T.i4,margin:"0 6px"}}>|</span>
-            <span style={{color:T.em,fontWeight:600}}>Base (incl. ER PF) + Bonus</span>
-          </span>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderBottom:`1px solid ${T.border}`}}>
+        <div style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
+          {/* Label row */}
+          <div style={{padding:"9px 14px 8px",display:"flex",alignItems:"center",gap:8,borderBottom:`1px solid ${T.border}40`}}>
+            <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.09em",textTransform:"uppercase",whiteSpace:"nowrap"}}>CTC Structure Types</span>
+            <div style={{flex:1,height:"1px",background:T.border}}/>
+          </div>
+          {/* Tab buttons */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
           {[
             {v:"breakdown", label:"CTC Breakdown",
              chips:[{t:"Base",c:T.bl},{t:"ER PF",c:T.em,small:true},{t:"Bonus",c:"#60A5FA"}]},
@@ -617,8 +615,8 @@ export default function NewRegimeSalaryCalc(){
           ].map(({v,label,chips})=>{
             const act=mode===v;
             return <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab"
-              style={{padding:"11px 12px 10px",border:"none",borderBottom:`3px solid ${act?T.bl:"transparent"}`,
-                background:act?T.bBg:T.bg,cursor:"pointer",textAlign:"left",fontFamily:"inherit",
+              style={{padding:"12px 12px 11px",border:"none",borderBottom:`3px solid ${act?T.bl:"transparent"}`,
+                background:act?`${T.bl}12`:T.bg,cursor:"pointer",textAlign:"left",fontFamily:"inherit",
                 borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",transition:"background .15s"}}>
               <div style={{fontSize:13,fontWeight:800,color:act?T.bl:T.i2,letterSpacing:"-0.025em",marginBottom:5}}>
                 {label}
@@ -674,6 +672,7 @@ export default function NewRegimeSalaryCalc(){
               </div>
             </button>;
           })}
+          </div>
         </div>
         <div style={{padding:"14px 20px 18px"}}>
           <div style={{fontSize:12,color:T.i3,padding:"8px 12px",background:T.bg,borderRadius:8,marginBottom:14,lineHeight:1.6,borderLeft:`3px solid ${mode==="breakdown"?T.bl:T.em}`}}>
