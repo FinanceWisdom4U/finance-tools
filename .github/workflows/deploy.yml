@@ -24,15 +24,13 @@ jobs:
         env:
           DISABLE_ESLINT_PLUGIN: true
 
-      - name: Copy .htaccess to build
-        run: cp public/.htaccess build/.htaccess
-
       - name: Upload build as artifact
         uses: actions/upload-artifact@v4
         with:
           name: build
           path: build/
           retention-days: 7
+          include-hidden-files: true
 
       # ── FTP Auto-deploy (disabled — enable when ready) ────
       # - name: Deploy via FTP to Hostinger
