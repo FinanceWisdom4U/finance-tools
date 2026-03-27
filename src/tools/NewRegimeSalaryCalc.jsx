@@ -260,6 +260,7 @@ export default function NewRegimeSalaryCalc(){
   const[bonusManual,setBonusManual]=useState("");
   const[erPfStr,setErPfStr]=useState("");
   const[erPfOverride,setErPfOverride]=useState(false);
+  const[erPfTip,setErPfTip]=useState(null); // which tab's ER PF tooltip is open
   const[basicPct,setBasicPct]=useState(50);
   const[pfCap,setPfCap]=useState(false);
   const[pt,setPt]=useState(true);
@@ -616,14 +617,52 @@ export default function NewRegimeSalaryCalc(){
               <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"3px 2px"}}>
                 {chips.map((ch,ci)=>[
                   ci>0&&<span key={`p${ci}`} style={{fontSize:10,color:T.i4,padding:"0 1px"}}>+</span>,
-                  <span key={ch.t} style={{
-                    fontSize:ch.small?9:10,fontWeight:700,
-                    color:act?(ch.small?"#fff":T.bl):T.i3,
-                    background:act?(ch.small?T.em:T.bl+"18"):"transparent",
-                    border:`1px solid ${act?(ch.small?T.em:T.bl+"50"):T.border}`,
-                    padding:ch.small?"1px 5px":"1px 6px",
-                    borderRadius:4,whiteSpace:"nowrap",letterSpacing:"0.01em"
-                  }}>{ch.t}</span>
+                  ch.small
+                    /* ── ER PF chip: hover/tap shows tooltip ── */
+                    ? <span key={ch.t} style={{position:"relative",display:"inline-block"}}
+                        onMouseEnter={()=>setErPfTip(v)} onMouseLeave={()=>setErPfTip(null)}>
+                        <span onClick={e=>{e.stopPropagation();setErPfTip(erPfTip===v?null:v);}} style={{
+                          fontSize:9,fontWeight:700,
+                          color:act?"#fff":T.i3,
+                          background:act?T.em:"transparent",
+                          border:`1px solid ${act?T.em:T.border}`,
+                          padding:"1px 5px",borderRadius:4,
+                          whiteSpace:"nowrap",letterSpacing:"0.01em",
+                          cursor:"help",display:"inline-flex",alignItems:"center",gap:2
+                        }}>{ch.t}<span style={{fontSize:8,opacity:.75}}>ⓘ</span></span>
+                        {erPfTip===v&&<div onClick={e=>e.stopPropagation()} style={{
+                          position:"absolute",top:"calc(100% + 6px)",left:"50%",
+                          transform:"translateX(-50%)",zIndex:50,
+                          background:T.ink,color:"#fff",borderRadius:10,
+                          padding:"9px 12px",fontSize:11,lineHeight:1.55,
+                          boxShadow:"0 6px 24px rgba(0,0,0,.28)",
+                          width:210,whiteSpace:"normal",
+                          border:"1px solid rgba(255,255,255,.1)"
+                        }}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                            <span style={{fontSize:10,fontWeight:800,background:"#6EE7B730",color:"#6EE7B7",padding:"2px 7px",borderRadius:5,letterSpacing:"0.05em"}}>ER = Employer</span>
+                          </div>
+                          <div style={{fontWeight:700,marginBottom:3,color:"#fff"}}>ER PF — Employer Provident Fund</div>
+                          <div style={{color:"rgba(255,255,255,.8)"}}>Your company pays <strong style={{color:"#FCD34D"}}>12% of your Basic</strong> salary into your EPF account every month — this is over and above your own PF deduction.</div>
+                          <div style={{marginTop:5,color:"#FCA5A5",fontSize:10}}>
+                            {v==="breakdown"
+                              ?"Listed as a separate line in your offer letter — on top of Base."
+                              :"Already bundled inside your Base salary amount."}
+                          </div>
+                          {/* arrow */}
+                          <div style={{position:"absolute",top:-5,left:"50%",transform:"translateX(-50%)",
+                            width:10,height:10,background:T.ink,border:"1px solid rgba(255,255,255,.1)",
+                            borderRight:"none",borderBottom:"none",transform:"translateX(-50%) rotate(45deg)"}}/>
+                        </div>}
+                      </span>
+                    /* ── regular chip ── */
+                    : <span key={ch.t} style={{
+                        fontSize:10,fontWeight:700,
+                        color:act?T.bl:T.i3,
+                        background:act?T.bl+"18":"transparent",
+                        border:`1px solid ${act?T.bl+"50":T.border}`,
+                        padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap",letterSpacing:"0.01em"
+                      }}>{ch.t}</span>
                 ])}
               </div>
             </button>;
