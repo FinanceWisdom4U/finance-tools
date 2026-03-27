@@ -608,7 +608,7 @@ export default function NewRegimeSalaryCalc(){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",background:T.bg}}>
           {[
             {v:"breakdown", parts:[{t:"Base",c:T.bl},{t:"ER PF",tip:true},{t:"Bonus",c:"#60A5FA"}]},
-            {v:"base_only",  parts:[{t:"Base",c:T.bl},{t:"(incl. ER PF)",tip:true},{t:"Bonus",c:"#60A5FA"}]},
+            {v:"base_only",  parts:[{t:"Base",c:T.bl},{t:"(incl. ER PF)",tip:true,noSep:true},{t:"Bonus",c:"#60A5FA"}]},
           ].map(({v,parts})=>{
             const act=mode===v;
             return <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab"
@@ -617,7 +617,7 @@ export default function NewRegimeSalaryCalc(){
                 borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",transition:"background .15s"}}>
               <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:"3px 3px"}}>
                 {parts.map((pt,pi)=>[
-                  pi>0&&<span key={`sep${pi}`} style={{fontSize:11,color:act?T.bl+"80":T.i4,fontWeight:600,padding:"0 1px"}}>+</span>,
+                  pi>0&&!pt.noSep&&<span key={`sep${pi}`} style={{fontSize:11,color:act?T.bl+"80":T.i4,fontWeight:600,padding:"0 1px"}}>+</span>,
                   pt.tip
                     /* ── ER PF: tap/hover tooltip ── */
                     ? <span key={`tip${pi}`} style={{position:"relative",display:"inline-block"}}
