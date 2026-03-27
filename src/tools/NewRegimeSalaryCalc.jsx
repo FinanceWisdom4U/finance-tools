@@ -599,46 +599,37 @@ export default function NewRegimeSalaryCalc(){
       {/* ── INPUT ── */}
       <div style={{background:T.cv,borderRadius:16,border:`1px solid ${T.border}`,boxShadow:T.sh2,overflow:"hidden"}}>
         {/* ── CTC mode selector ── */}
-        <div style={{background:T.bg,borderBottom:`1px solid ${T.border}`}}>
-          {/* Label row */}
-          <div style={{padding:"9px 14px 8px",borderBottom:`1px solid ${T.border}40`}}>
-            <span style={{fontSize:10,fontWeight:700,color:T.i3,letterSpacing:"0.09em",textTransform:"uppercase"}}>CTC Structure Types</span>
+        <div style={{borderBottom:`1px solid ${T.border}`}}>
+          {/* Header */}
+          <div style={{padding:"9px 16px 8px",background:`${T.bl}18`,borderBottom:`2px solid ${T.bl}35`,textAlign:"center"}}>
+            <span style={{fontSize:10,fontWeight:800,color:T.bl,letterSpacing:"0.1em",textTransform:"uppercase"}}>CTC Structure Types</span>
           </div>
           {/* Tab buttons */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",background:T.bg}}>
           {[
-            {v:"breakdown", label:"CTC Breakdown",
-             chips:[{t:"Base",c:T.bl},{t:"ER PF",c:T.em,small:true},{t:"Bonus",c:"#60A5FA"}]},
-            {v:"base_only",  label:"Base Only",
-             chips:[{t:"Base",c:T.bl},{t:"(incl. ER PF)",c:T.em,small:true},{t:"Bonus",c:"#60A5FA"}]},
-          ].map(({v,label,chips})=>{
+            {v:"breakdown", parts:[{t:"Base",c:T.bl},{t:"ER PF",tip:true},{t:"Bonus",c:"#60A5FA"}]},
+            {v:"base_only",  parts:[{t:"Base",c:T.bl},{t:"(incl. ER PF)",tip:true},{t:"Bonus",c:"#60A5FA"}]},
+          ].map(({v,parts})=>{
             const act=mode===v;
             return <button key={v} onClick={()=>setMode(v)} className="ctc-mode-tab"
-              style={{padding:"12px 12px 11px",border:"none",borderBottom:`3px solid ${act?T.bl:"transparent"}`,
-                background:act?`${T.bl}12`:T.bg,cursor:"pointer",textAlign:"left",fontFamily:"inherit",
+              style={{padding:"12px 10px 11px",border:"none",borderBottom:`3px solid ${act?T.bl:"transparent"}`,
+                background:act?`${T.bl}12`:T.bg,cursor:"pointer",textAlign:"center",fontFamily:"inherit",
                 borderRight:v==="breakdown"?`1px solid ${T.border}`:"none",transition:"background .15s"}}>
-              <div style={{fontSize:13,fontWeight:800,color:act?T.bl:T.i2,letterSpacing:"-0.025em",marginBottom:5}}>
-                {label}
-              </div>
-              <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"3px 2px"}}>
-                {chips.map((ch,ci)=>[
-                  ci>0&&<span key={`p${ci}`} style={{fontSize:10,color:T.i4,padding:"0 1px"}}>+</span>,
-                  ch.small
-                    /* ── ER PF chip: hover/tap shows tooltip ── */
-                    ? <span key={ch.t} style={{position:"relative",display:"inline-block"}}
+              <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:"3px 3px"}}>
+                {parts.map((pt,pi)=>[
+                  pi>0&&<span key={`sep${pi}`} style={{fontSize:11,color:act?T.bl+"80":T.i4,fontWeight:600,padding:"0 1px"}}>+</span>,
+                  pt.tip
+                    /* ── ER PF: tap/hover tooltip ── */
+                    ? <span key={`tip${pi}`} style={{position:"relative",display:"inline-block"}}
                         onMouseEnter={()=>setErPfTip(v)} onMouseLeave={()=>setErPfTip(null)}>
                         <span onClick={e=>{e.stopPropagation();setErPfTip(erPfTip===v?null:v);}} style={{
-                          fontSize:9,fontWeight:700,
-                          color:act?"#fff":T.i3,
-                          background:act?T.em:"transparent",
-                          border:`1px solid ${act?T.em:T.border}`,
-                          padding:"1px 5px",borderRadius:4,
-                          whiteSpace:"nowrap",letterSpacing:"0.01em",
-                          cursor:"help",display:"inline-flex",alignItems:"center",gap:2
-                        }}>{ch.t}<span style={{fontSize:8,opacity:.75}}>ⓘ</span></span>
+                          fontSize:12,fontWeight:700,
+                          color:act?T.em:T.i3,
+                          cursor:"help",display:"inline-flex",alignItems:"center",gap:2,
+                          whiteSpace:"nowrap",letterSpacing:"-0.01em"
+                        }}>{pt.t}<span style={{fontSize:9,opacity:.65}}>ⓘ</span></span>
                         {erPfTip===v&&<div onClick={e=>e.stopPropagation()} style={{
                           position:"absolute",top:"calc(100% + 6px)",
-                          /* anchor left for left tab, right for right tab — stays on screen */
                           ...(v==="breakdown"?{left:0}:{right:0}),
                           zIndex:50,
                           background:T.ink,color:"#fff",borderRadius:10,
@@ -659,14 +650,11 @@ export default function NewRegimeSalaryCalc(){
                           </div>
                         </div>}
                       </span>
-                    /* ── regular chip ── */
-                    : <span key={ch.t} style={{
-                        fontSize:10,fontWeight:700,
-                        color:act?T.bl:T.i3,
-                        background:act?T.bl+"18":"transparent",
-                        border:`1px solid ${act?T.bl+"50":T.border}`,
-                        padding:"1px 6px",borderRadius:4,whiteSpace:"nowrap",letterSpacing:"0.01em"
-                      }}>{ch.t}</span>
+                    /* ── regular part ── */
+                    : <span key={`p${pi}`} style={{
+                        fontSize:12,fontWeight:700,whiteSpace:"nowrap",letterSpacing:"-0.01em",
+                        color:act?pt.c:T.i3
+                      }}>{pt.t}</span>
                 ])}
               </div>
             </button>;
