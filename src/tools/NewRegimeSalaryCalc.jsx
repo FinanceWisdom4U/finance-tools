@@ -197,53 +197,52 @@ function BarChart({data}){
   const mx=Math.max(...data.map(d=>d.total),1);
   const f_=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n);
   const d_=hov!==null?data[hov]:null;
-  // Tooltip rendered at top of chart (not above each bar) — avoids overflow-x:auto clipping
-  const TIP_H=d_?(d_.bonus>0||d_.hasPerk?86:66):0;
-  return <div style={{overflowX:"auto"}}>
-    <div style={{minWidth:500,padding:"0 4px",position:"relative"}}>
-      {/* ── floating tooltip pinned to top of chart area ── */}
-      {d_&&<div style={{
-        position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",
-        zIndex:10,background:T.ink,color:"#fff",borderRadius:12,
-        padding:"9px 14px",fontSize:11,whiteSpace:"nowrap",
-        boxShadow:"0 4px 20px rgba(0,0,0,.28)",pointerEvents:"none",
-        display:"flex",gap:16,alignItems:"flex-start"
-      }}>
-        <div>
-          <div style={{fontWeight:800,marginBottom:3,color:"#E2E8F0",letterSpacing:"0.02em"}}>{MONTHS[hov]}</div>
-          <div>Salary <strong style={{color:"#6EE7B7"}}>{f_(d_.inHand)}</strong></div>
-          {d_.bonus>0&&<div>Bonus <strong style={{color:"#FCD34D"}}>{f_(d_.bonus)}</strong></div>}
-          {d_.hasPerk&&<div>Perk <strong style={{color:"#FDE68A"}}>{f_(d_.perkNet)}</strong></div>}
-        </div>
-        <div>
-          <div style={{color:"#FCA5A5",marginBottom:3}}>TDS <strong>{f_(d_.tds)}</strong></div>
-          <div style={{paddingTop:3,borderTop:"1px solid rgba(255,255,255,.2)"}}>
-            Total <strong style={{color:"#fff"}}>{f_(d_.total)}</strong>
-          </div>
-        </div>
-      </div>}
-      <div style={{display:"flex",alignItems:"flex-end",gap:3,height:200,position:"relative",marginTop:TIP_H>0?TIP_H+8:8}}>
-        <div style={{position:"absolute",left:0,top:0,bottom:0,width:2,background:T.border}}/>
-        {data.map((d,i)=>{
-          const iH=(d.inHand/mx)*170,bH=(d.bonus/mx)*170,pH=(d.perkNet/mx)*170,hv=hov===i;
-          return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",position:"relative"}}
-            onMouseEnter={()=>setHov(i)} onMouseLeave={()=>setHov(null)}>
-            <div style={{width:"100%",position:"relative",display:"flex",flexDirection:"column",justifyContent:"flex-end",height:170}}>
-              <div style={{width:"100%",height:iH,background:hv?"#059669":T.em,borderRadius:(bH>0||pH>0)?"0":"4px 4px 0 0",transition:"all .15s"}}/>
-              {bH>0&&<div style={{position:"absolute",bottom:iH,width:"100%",height:bH,background:hv?"#34D399":"#6EE7B7",borderRadius:pH>0?"0":"4px 4px 0 0"}}/>}
-              {pH>0&&<div style={{position:"absolute",bottom:iH+bH,width:"100%",height:pH,background:hv?"#F59E0B":"#FDE68A",borderRadius:"4px 4px 0 0"}}/>}
-            </div>
-            <div style={{fontSize:10,marginTop:3,color:hv?T.em:d.hasBonus?T.bl:d.hasPerk?T.aR:T.i3,fontWeight:hv||(d.hasBonus||d.hasPerk)?700:400}}>
-              {MONTHS[i]}{d.hasPerk&&!d.hasBonus?" 🎁":""}
-            </div>
-          </div>;
-        })}
+  // Tooltip rendered as normal-flow element ABOVE the scrollable chart — no overflow clipping
+  return <div>
+    {d_&&<div style={{
+      background:T.ink,color:"#fff",borderRadius:12,
+      padding:"9px 14px",fontSize:11,whiteSpace:"nowrap",
+      boxShadow:"0 4px 20px rgba(0,0,0,.28)",pointerEvents:"none",
+      display:"flex",gap:16,alignItems:"flex-start",marginBottom:8
+    }}>
+      <div>
+        <div style={{fontWeight:800,marginBottom:3,color:"#E2E8F0",letterSpacing:"0.02em"}}>{MONTHS[hov]}</div>
+        <div>Salary <strong style={{color:"#6EE7B7"}}>{f_(d_.inHand)}</strong></div>
+        {d_.bonus>0&&<div>Bonus <strong style={{color:"#FCD34D"}}>{f_(d_.bonus)}</strong></div>}
+        {d_.hasPerk&&<div>Perk <strong style={{color:"#FDE68A"}}>{f_(d_.perkNet)}</strong></div>}
       </div>
-      <div style={{display:"flex",gap:14,marginTop:8,flexWrap:"wrap"}}>
-        {[[T.em,"Monthly salary (after deductions)"],["#6EE7B7","Bonus (TDS adjusted)"],["#FDE68A","Perk / one-time (net)"]].map(([c,l])=>
-          <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:T.i3}}>
-            <div style={{width:9,height:9,borderRadius:2,background:c}}/>{l}
-          </div>)}
+      <div>
+        <div style={{color:"#FCA5A5",marginBottom:3}}>TDS <strong>{f_(d_.tds)}</strong></div>
+        <div style={{paddingTop:3,borderTop:"1px solid rgba(255,255,255,.2)"}}>
+          Total <strong style={{color:"#fff"}}>{f_(d_.total)}</strong>
+        </div>
+      </div>
+    </div>}
+    <div style={{overflowX:"auto"}}>
+      <div style={{minWidth:500,padding:"0 4px"}}>
+        <div style={{display:"flex",alignItems:"flex-end",gap:3,height:200,position:"relative",marginTop:8}}>
+          <div style={{position:"absolute",left:0,top:0,bottom:0,width:2,background:T.border}}/>
+          {data.map((d,i)=>{
+            const iH=(d.inHand/mx)*170,bH=(d.bonus/mx)*170,pH=(d.perkNet/mx)*170,hv=hov===i;
+            return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",position:"relative"}}
+              onMouseEnter={()=>setHov(i)} onMouseLeave={()=>setHov(null)} onClick={()=>setHov(hov===i?null:i)}>
+              <div style={{width:"100%",position:"relative",display:"flex",flexDirection:"column",justifyContent:"flex-end",height:170}}>
+                <div style={{width:"100%",height:iH,background:hv?"#059669":T.em,borderRadius:(bH>0||pH>0)?"0":"4px 4px 0 0",transition:"all .15s"}}/>
+                {bH>0&&<div style={{position:"absolute",bottom:iH,width:"100%",height:bH,background:hv?"#34D399":"#6EE7B7",borderRadius:pH>0?"0":"4px 4px 0 0"}}/>}
+                {pH>0&&<div style={{position:"absolute",bottom:iH+bH,width:"100%",height:pH,background:hv?"#F59E0B":"#FDE68A",borderRadius:"4px 4px 0 0"}}/>}
+              </div>
+              <div style={{fontSize:10,marginTop:3,color:hv?T.em:d.hasBonus?T.bl:d.hasPerk?T.aR:T.i3,fontWeight:hv||(d.hasBonus||d.hasPerk)?700:400}}>
+                {MONTHS[i]}{d.hasPerk&&!d.hasBonus?" 🎁":""}
+              </div>
+            </div>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:14,marginTop:8,flexWrap:"wrap"}}>
+          {[[T.em,"Monthly salary (after deductions)"],["#6EE7B7","Bonus (TDS adjusted)"],["#FDE68A","Perk / one-time (net)"]].map(([c,l])=>
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:T.i3}}>
+              <div style={{width:9,height:9,borderRadius:2,background:c}}/>{l}
+            </div>)}
+        </div>
       </div>
     </div>
   </div>;
@@ -489,7 +488,7 @@ export default function NewRegimeSalaryCalc(){
     });
   },[r,bonusA,bSched,bSplit,cm1,cm2,customTwo,perks,dedns,mode,joinMonth]);
 
-  const isTwice=(bSched==="sep_mar")&&bonusA>0;
+  const isTwice=bSched==="sep_mar"&&bonusA>0;
 
   return <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at top,#EDE9E3 0%,${T.bg} 60%)`,fontFamily:"'Outfit',sans-serif",color:T.ink}}>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"/>
@@ -1006,9 +1005,9 @@ export default function NewRegimeSalaryCalc(){
               <div style={{background:`linear-gradient(135deg,${T.vBg},#EDE9FE)`,border:`1.5px solid ${T.vi}22`,borderRadius:14,padding:"14px 16px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <span style={{fontSize:13,fontWeight:600,color:T.i2}}>NPS % of Basic</span>
-                  <span style={{fontSize:15,fontWeight:800,color:T.vi,fontFamily:"'Courier New',monospace",letterSpacing:"-0.02em"}}>{npsPct}% <span style={{fontSize:12,fontWeight:500,color:T.i3}}>= {fi(r.npsM)}/mo</span></span>
+                  <span style={{fontSize:15,fontWeight:800,color:T.vi,fontFamily:"'Courier New',monospace",letterSpacing:"-0.02em"}}>{Number.isInteger(npsPct)?npsPct:npsPct.toFixed(1)}% <span style={{fontSize:12,fontWeight:500,color:T.i3}}>= {fi(r.npsM)}/mo</span></span>
                 </div>
-                <input type="range" min={1} max={14} value={npsPct} onChange={e=>setNpsPct(+e.target.value)} style={{width:"100%",accentColor:npsFullyWasted?T.ro:npsPartlyWasted?T.aR:T.vi,cursor:"pointer"}}/>
+                <input type="range" min={1} max={14} step={0.5} value={npsPct} onChange={e=>setNpsPct(+e.target.value)} style={{width:"100%",accentColor:npsFullyWasted?T.ro:npsPartlyWasted?T.aR:T.vi,cursor:"pointer"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.i3,marginTop:4}}><span>1%</span><span style={{color:T.vi,fontWeight:600}}>Max 14% of Basic</span></div>
               </div>
 
@@ -1209,7 +1208,7 @@ export default function NewRegimeSalaryCalc(){
         <Row label="Annual Gross (Base + Bonus)" sub="All allowances fully taxable in new regime" val={fi(baseA+bonusA)}/>
         {mode==="base_only"&&<Row label="ER PF (exempt u/s 10(12))" val={`−${fi(r.erF)}`} col={T.i3} indent/>}
         <Row label="− Standard Deduction" sub="₹75,000 flat" val={`−${fi(r.stdD)}`} col={T.em} indent/>
-        {npsOn&&<Row label="− Employer NPS 80CCD(2)" sub={`${npsPct}% of Basic · u/s 80CCD(2)`} val={`−${fi(r.npsA)}`} col={T.vi} indent/>}
+        {npsOn&&<Row label="− Employer NPS 80CCD(2)" sub={`${Number.isInteger(npsPct)?npsPct:npsPct.toFixed(1)}% of Basic · u/s 80CCD(2)`} val={`−${fi(r.npsA)}`} col={T.vi} indent/>}
         {r.retirementExcess>0&&<Row
           label="+ Sec 17(2)(vii) Perquisite"
           sub={`ER PF ${fL(r.erF)}${r.npsA>0?` + NPS ${fL(r.npsA)}`:""}  = ${fL(r.retirementAggregate)} exceeds ₹7.5L cap — excess added back as taxable`}
