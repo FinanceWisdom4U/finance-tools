@@ -2,34 +2,37 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-do
 import { useEffect } from "react";
 import NewRegimeSalaryCalc from "./tools/NewRegimeSalaryCalc";
 
-/* ─── Google Analytics Route Tracker ───────────────────────────
-   Fires a GA pageview on every route change.
-   Must be inside <BrowserRouter> to access useLocation.
-─────────────────────────────────────────────────────────────── */
-function AnalyticsTracker() {
-  const location = useLocation();
-  useEffect(() => {
-    if (window.gtag) {
-      window.gtag("config", "G-LS24317CNQ", {
-        page_path: location.pathname,
-      });
-    }
-  }, [location]);
-  return null;
-}
-
-/* ─── Tool Registry ─────────────────────────────────────────────
-   To add a new tool:
-   1. Create src/tools/YourTool.jsx
-   2. import YourTool from "./tools/YourTool"
-   3. Add an entry in TOOLS array
-   4. Add a <Route> below
-─────────────────────────────────────────────────────────────── */
 const TOOLS = [
   { path: "new-regime-salary-calculator", label: "New Regime Salary Calculator", desc: "In-hand salary with new tax regime" },
   // { path: "sip-calculator",    label: "SIP Calculator",    desc: "Mutual fund SIP returns" },
   // { path: "emi-calculator",    label: "EMI Calculator",    desc: "Loan EMI & prepayment" },
 ];
+
+const SITE = "FinanceWisdom4U";
+
+// Map pathname → page title (basename-relative paths)
+const PAGE_TITLES = {
+  "/": `Finance Tools – ${SITE}`,
+  "/new-regime-salary-calculator": `New Regime Salary Calculator FY 2026-27 – ${SITE}`,
+};
+
+/* ─── Google Analytics Route Tracker ───────────────────────────
+   Fires a GA pageview on every route change with correct title.
+─────────────────────────────────────────────────────────────── */
+function AnalyticsTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    const title = PAGE_TITLES[location.pathname] ?? `Finance Tools – ${SITE}`;
+    document.title = title;
+    if (window.gtag) {
+      window.gtag("config", "G-LS24317CNQ", {
+        page_path: "/finance-tools" + location.pathname,
+        page_title: title,
+      });
+    }
+  }, [location]);
+  return null;
+}
 
 function Home() {
   return (
