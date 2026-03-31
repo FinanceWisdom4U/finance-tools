@@ -250,7 +250,7 @@ function PfSection({accent,pfInBase,onPfInBase,basicAuto,onBasicAuto,basicPct,on
     <div style={{background:`${accent}0D`,border:`1px solid ${accent}33`,borderRadius:10,padding:"12px 14px",marginBottom:4}}>
       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:8,fontFamily:"Outfit,sans-serif"}}>PF Configuration</div>
       <LB>Is ER PF included in the quoted base?</LB>
-      <Pills opts={[{v:true,l:"Inside Base"},{v:false,l:"On-Top of Base"}]} val={pfInBase} onChange={onPfInBase} accent={accent}/>
+      <Pills opts={[{v:false,l:"On-Top of Base"},{v:true,l:"Inside Base"}]} val={pfInBase} onChange={onPfInBase} accent={accent}/>
       <HT>{pfInBase?"ER PF is baked into the quoted base. ER PF = 12% of basic.":"ER PF is added on top of the quoted base. ER PF = 12% of basic."}</HT>
       <LB>Basic salary calculation</LB>
       <Pills opts={[{v:true,l:"50% of base (auto)"},{v:false,l:"Custom %"}]} val={basicAuto} onChange={onBasicAuto} accent={accent}/>
@@ -677,7 +677,7 @@ export default function OfferCompare(){
     const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+v/100))));
   };
   const onHikePctInput=v=>{
-    const n=Math.min(150,Math.max(1,Number(v)||1));
+    const n=Math.min(100,Math.max(0,Number(v)||0));
     setHikePct(n);
     const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+n/100))));
   };
@@ -685,7 +685,7 @@ export default function OfferCompare(){
     setNewBase(v);
     if(hikeMode&&tN(curBase)>0&&tN(v)>0){
       const rev=Math.round((tN(v)/tN(curBase)-1)*100);
-      if(rev>=1&&rev<=150)setHikePct(rev);
+      if(rev>=0&&rev<=100)setHikePct(rev);
     }
   };
 
@@ -793,7 +793,7 @@ export default function OfferCompare(){
             <div style={{padding:"12px 0 0"}}>
               {!tN(curBase)&&<div style={{fontSize:12,color:"#F59E0B",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:8,padding:"8px 12px",marginBottom:10}}>Enter your current base salary in the <strong>Current</strong> panel first — New Offer updates live.</div>}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,gap:8,flexWrap:"wrap"}}>
-                <label style={{fontSize:13,fontWeight:700,color:"#334155"}}>Expected Hike %</label>
+                <div><label style={{fontSize:13,fontWeight:700,color:"#334155"}}>Expected Hike %</label><span style={{fontSize:10,color:"#94A3B8",marginLeft:6}}>of base salary</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   {tN(curBase)>0&&(
                     <span style={{fontSize:13,fontFamily:"Courier New,monospace",color:"#64748B"}}>
@@ -804,15 +804,15 @@ export default function OfferCompare(){
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>onHikeSlider(Number(e.target.value))}
+                <input type="range" min={0} max={100} step={1} value={hikePct} onChange={e=>onHikeSlider(Number(e.target.value))}
                   style={{flex:1,accentColor:PU,cursor:"pointer",height:6}}/>
-                <input type="number" min={1} max={150} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
+                <input type="number" min={0} max={100} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
                   style={{width:60,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
                 <span style={{fontSize:13,fontWeight:700,color:PU,marginLeft:-6}}>%</span>
               </div>
               <div style={{position:"relative",height:16,marginTop:2,marginBottom:8}}>
-                {[[1,"1%"],[30,"30%"],[50,"50%"],[100,"100%"],[150,"150%"]].map(([v,l])=>(
-                  <span key={v} style={{position:"absolute",left:`${(v-1)/149*100}%`,transform:"translateX(-50%)",fontSize:10,color:Math.abs(hikePct-v)<=2?"#6366F1":"#94A3B8",fontWeight:Math.abs(hikePct-v)<=2?700:400,whiteSpace:"nowrap"}}>{l}</span>
+                {[[0,"0%"],[25,"25%"],[50,"50%"],[75,"75%"],[100,"100%"]].map(([v,l])=>(
+                  <span key={v} style={{position:"absolute",left:`${v}%`,transform:"translateX(-50%)",fontSize:10,color:Math.abs(hikePct-v)<=2?"#6366F1":"#94A3B8",fontWeight:Math.abs(hikePct-v)<=2?700:400,whiteSpace:"nowrap"}}>{l}</span>
                 ))}
               </div>
               {tN(curBase)>0&&(
