@@ -971,7 +971,7 @@ export default function OfferCompare(){
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:"#93C5FD",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Current</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>≈{fmtINR(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>{fmtINR(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                   <div style={{textAlign:"center"}}>
                     <div style={{padding:"8px 14px",borderRadius:20,fontSize:13,fontWeight:900,background:y1.delta>=0?"rgba(52,211,153,.25)":"rgba(248,113,113,.25)",color:y1.delta>=0?"#6EE7B7":"#FCA5A5",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"rgba(52,211,153,.5)":"rgba(248,113,113,.5)"}`,whiteSpace:"nowrap",boxShadow:y1.delta>=0?"0 0 20px rgba(52,211,153,.2)":"0 0 20px rgba(248,113,113,.2)"}}>
@@ -982,7 +982,7 @@ export default function OfferCompare(){
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#6EE7B7",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>New Offer</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>≈{fmtINR(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>{fmtINR(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                 </div>
               </div>
@@ -1091,8 +1091,8 @@ export default function OfferCompare(){
                           <div key={s.label} style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
                             <div style={{background:s.grad,padding:"11px 14px"}}>
                               <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
-                              <div style={{fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.4px",marginTop:2,lineHeight:1.1}}>≈{fmtINR(s.d.inHand/12)}<span style={{fontSize:10,fontWeight:400,opacity:.8}}>/mo</span></div>
-                              <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>{fmtL(s.d.inHand/12)} · approx</div>
+                              <div style={{fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.4px",marginTop:2,lineHeight:1.1}}>{fmtINR(s.d.inHand/12)}<span style={{fontSize:10,fontWeight:400,opacity:.8}}>/mo</span></div>
+                              <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>{fmtL(s.d.inHand/12)}</div>
                             </div>
                             <div style={{padding:"10px 14px",background:`${s.color}06`}}>
                               {[
@@ -1116,12 +1116,12 @@ export default function OfferCompare(){
                                 <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Monthly Take-home</div>
                                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.d.bonusMonthNet!==s.d.regularMonthly?4:0}}>
                                   <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>{s.d.bonusMonthNet!==s.d.regularMonthly?"Regular months (11)":"Monthly (all 12)"}</span>
-                                  <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>≈{fmtINR(s.d.regularMonthly)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.regularMonthly)}</span></span>
+                                  <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtINR(s.d.regularMonthly)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.regularMonthly)}</span></span>
                                 </div>
                                 {s.d.bonusMonthNet!==s.d.regularMonthly&&(
                                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                                     <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>Bonus month <span style={{fontSize:10,color:"#94A3B8"}}>(incl. bonus − extra TDS)</span></span>
-                                    <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>≈{fmtINR(s.d.bonusMonthNet)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.bonusMonthNet)}</span></span>
+                                    <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtINR(s.d.bonusMonthNet)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.bonusMonthNet)}</span></span>
                                   </div>
                                 )}
                               </div>
