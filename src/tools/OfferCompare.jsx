@@ -10,13 +10,14 @@ function slabTax(ti){
   let t=0,p=0;for(const[l,r]of s){if(ti<=p)break;t+=(Math.min(ti,l)-p)*r;p=l;}
   return ti<=1200000?0:t;
 }
-function srRate(ti){return ti>10000000?.15:ti>5000000?.10:0;}
+function srRate(ti){return ti>20000000?.25:ti>10000000?.15:ti>5000000?.10:0;}
 function calcTax(ti){
   if(ti<=0)return 0;
   const base=slabTax(ti),sr=srRate(ti);
   const noR=Math.round(base*(1+sr)*1.04);
   if(sr===0)return noR;
-  const thrs=[5000000,10000000,20000000,50000000];
+  // Marginal relief at each surcharge threshold: 50L, 1Cr, 2Cr (new regime cap = 25%)
+  const thrs=[5000000,10000000,20000000];
   let thr=0;for(const t of thrs){if(ti>t)thr=t;}
   return Math.min(noR,calcTax(thr)+(ti-thr));
 }
@@ -43,31 +44,48 @@ function fmtD(val){
   return`${s}₹${Math.round(v)}`;
 }
 
-// Returns full breakdown with proper base-vs-bonus TDS split
-function calcInHand(base,bonus,bPct,pfCap){
+// Returns full breakdown — pfInBase=true means quoted base includes ER PF
+function calcInHand(base,bonus,bPct,pfCap,pfInBase){
   const basicA=base*(bPct||50)/100;
   const pfWageA=pfCap?Math.min(basicA/12,15000)*12:basicA;
   const eeA=Math.round(pfWageA*.12);
   const erA=eeA;
-  // Base-only tax (for regular months)
-  const baseTaxable=Math.max(0,base-75000);
+  // If ER PF is baked into quoted base, actual cash salary is base − erA
+  const cashBase=pfInBase?base-erA:base;
+  // Separate base-only tax from bonus TDS spike
+  const baseTaxable=Math.max(0,cashBase-75000);
   const baseTax=calcTax(baseTaxable);
-  // Total tax including bonus
-  const totalTaxable=Math.max(0,base+bonus-75000);
+  const totalTaxable=Math.max(0,cashBase+bonus-75000);
   const totalTax=calcTax(totalTaxable);
-  const bonusTax=totalTax-baseTax;           // Extra TDS hit in bonus month
-  const gross=base+bonus;
+  const bonusTax=totalTax-baseTax;
+  const gross=cashBase+bonus;              // actual cash gross (ER PF already out)
   const inHand=Math.round(gross-totalTax-eeA);
-  // Monthly split: bonus received in 1 month, rest are base-only months
-  const regularMonthly=Math.round((base-baseTax-eeA)/12);
+  const regularMonthly=Math.round((cashBase-baseTax-eeA)/12);
   const bonusMonthNet=bonus>0?Math.round(regularMonthly+bonus-bonusTax):regularMonthly;
-  return{gross,eeA,erA,taxA:totalTax,inHand,taxable:totalTaxable,baseTax,bonusTax,regularMonthly,bonusMonthNet};
+  return{gross,eeA,erA,taxA:totalTax,inHand,taxable:totalTaxable,baseTax,bonusTax,regularMonthly,bonusMonthNet,cashBase};
+}
+// Tax slab breakdown for display
+function taxSlabBreakdown(ti){
+  if(ti<=0)return null;
+  const defs=[[0,400000,0],[400000,800000,.05],[800000,1200000,.10],[1200000,1600000,.15],[1600000,2000000,.20],[2000000,2400000,.25],[2400000,Infinity,.30]];
+  const rows=[];let baseAmt=0;
+  for(const[lo,hi,r]of defs){
+    if(ti<=lo)break;
+    const band=Math.min(ti,hi)-lo;
+    if(band>0&&r>0)rows.push({lo,hi:Math.min(ti,hi),rate:r,tax:Math.round(band*r)});
+    baseAmt+=band*r;
+  }
+  if(ti<=1200000)return{rows:[],base:0,srAmt:0,cessAmt:0,total:0,rebate:true};
+  const sr=srRate(ti);
+  const srAmt=Math.round(baseAmt*sr);
+  const cessAmt=Math.round((baseAmt+srAmt)*0.04);
+  return{rows,base:Math.round(baseAmt),sr,srAmt,cessAmt,total:Math.round(baseAmt+srAmt+cessAmt),rebate:false};
 }
 function getPf(base,bPct,pfCap){
-  const{erA}=calcInHand(base,0,bPct,pfCap);return erA;
+  const{erA}=calcInHand(base,0,bPct,pfCap,false);return erA;
 }
-function getInHand(base,bonus,bPct,pfCap){
-  return calcInHand(base,bonus,bPct,pfCap).inHand;
+function getInHand(base,bonus,bPct,pfCap,pfInBase){
+  return calcInHand(base,bonus,bPct,pfCap,pfInBase).inHand;
 }
 function getRetentionForYear(list,year){
   return(list||[]).filter(r=>r.year===year).reduce((s,r)=>s+tN(r.amount),0);

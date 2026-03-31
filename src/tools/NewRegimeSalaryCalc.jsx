@@ -13,13 +13,14 @@ function slabTax(ti){
   let t=0,p=0; for(const[l,r]of s){if(ti<=p)break;t+=(Math.min(ti,l)-p)*r;p=l;}
   return ti<=1200000?0:t;
 }
-function srRate(ti){return ti>10000000?.15:ti>5000000?.10:0;}  // simplified: >1Cr=15%, >50L=10%, new regime cap 25% for >2Cr
+function srRate(ti){return ti>20000000?.25:ti>10000000?.15:ti>5000000?.10:0;}  // >2Cr=25%, >1Cr=15%, >50L=10% (new regime cap 25%)
 function calcTax(ti){
   if(ti<=0)return 0;
   const base=slabTax(ti),sr=srRate(ti);
   const noR=Math.round(base*(1+sr)*1.04);
   if(sr===0)return noR;
-  const thrs=[5000000,10000000,20000000,50000000];
+  // Marginal relief at 50L, 1Cr, 2Cr thresholds (no higher tier in new regime)
+  const thrs=[5000000,10000000,20000000];
   let thr=0; for(const t of thrs){if(ti>t)thr=t;}
   return Math.min(noR, calcTax(thr)+(ti-thr));
 }
