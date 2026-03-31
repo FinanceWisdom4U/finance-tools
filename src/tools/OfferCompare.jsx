@@ -677,7 +677,7 @@ export default function OfferCompare(){
     const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+v/100))));
   };
   const onHikePctInput=v=>{
-    const n=Math.min(100,Math.max(0,Number(v)||0));
+    const n=Math.min(500,Math.max(0,Number(v)||0));
     setHikePct(n);
     const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+n/100))));
   };
@@ -685,7 +685,7 @@ export default function OfferCompare(){
     setNewBase(v);
     if(hikeMode&&tN(curBase)>0&&tN(v)>0){
       const rev=Math.round((tN(v)/tN(curBase)-1)*100);
-      if(rev>=0&&rev<=100)setHikePct(rev);
+      if(rev>=0&&rev<=500)setHikePct(rev);
     }
   };
 
@@ -804,17 +804,18 @@ export default function OfferCompare(){
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <input type="range" min={0} max={100} step={1} value={hikePct} onChange={e=>onHikeSlider(Number(e.target.value))}
+                <input type="range" min={0} max={100} step={1} value={Math.min(hikePct,100)} onChange={e=>onHikeSlider(Number(e.target.value))}
                   style={{flex:1,accentColor:PU,cursor:"pointer",height:6}}/>
-                <input type="number" min={0} max={100} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
-                  style={{width:60,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
+                <input type="number" min={0} max={500} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
+                  style={{width:68,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
                 <span style={{fontSize:13,fontWeight:700,color:PU,marginLeft:-6}}>%</span>
               </div>
-              <div style={{position:"relative",height:16,marginTop:2,marginBottom:8}}>
+              <div style={{position:"relative",height:16,marginTop:2,marginBottom:hikePct>100?4:8}}>
                 {[[0,"0%"],[25,"25%"],[50,"50%"],[75,"75%"],[100,"100%"]].map(([v,l])=>(
-                  <span key={v} style={{position:"absolute",left:`${v}%`,transform:"translateX(-50%)",fontSize:10,color:Math.abs(hikePct-v)<=2?"#6366F1":"#94A3B8",fontWeight:Math.abs(hikePct-v)<=2?700:400,whiteSpace:"nowrap"}}>{l}</span>
+                  <span key={v} style={{position:"absolute",left:`${v}%`,transform:"translateX(-50%)",fontSize:10,color:"#94A3B8",whiteSpace:"nowrap"}}>{l}</span>
                 ))}
               </div>
+              {hikePct>100&&<div style={{fontSize:10,color:"#6366F1",marginBottom:8}}>↑ Slider capped at 100% — manual entry active ({hikePct}%)</div>}
               {tN(curBase)>0&&(
                 <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div>
