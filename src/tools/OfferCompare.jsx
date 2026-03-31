@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 /* ═══════════════════════════════════════════
    TAX ENGINE — New Regime FY 2026-27
@@ -42,17 +43,25 @@ function fmtD(val){
   return`${s}₹${Math.round(v)}`;
 }
 
-// Returns full breakdown — same logic as NewRegimeSalaryCalc
+// Returns full breakdown with proper base-vs-bonus TDS split
 function calcInHand(base,bonus,bPct,pfCap){
   const basicA=base*(bPct||50)/100;
   const pfWageA=pfCap?Math.min(basicA/12,15000)*12:basicA;
-  const eeA=Math.round(pfWageA*.12);         // Employee PF
-  const erA=eeA;                              // Employer PF (same rate)
+  const eeA=Math.round(pfWageA*.12);
+  const erA=eeA;
+  // Base-only tax (for regular months)
+  const baseTaxable=Math.max(0,base-75000);
+  const baseTax=calcTax(baseTaxable);
+  // Total tax including bonus
+  const totalTaxable=Math.max(0,base+bonus-75000);
+  const totalTax=calcTax(totalTaxable);
+  const bonusTax=totalTax-baseTax;           // Extra TDS hit in bonus month
   const gross=base+bonus;
-  const taxable=Math.max(0,gross-75000);      // New regime: std deduction only
-  const taxA=calcTax(taxable);
-  const inHand=Math.round(gross-taxA-eeA);
-  return{gross,eeA,erA,taxA,inHand,taxable};
+  const inHand=Math.round(gross-totalTax-eeA);
+  // Monthly split: bonus received in 1 month, rest are base-only months
+  const regularMonthly=Math.round((base-baseTax-eeA)/12);
+  const bonusMonthNet=bonus>0?Math.round(regularMonthly+bonus-bonusTax):regularMonthly;
+  return{gross,eeA,erA,taxA:totalTax,inHand,taxable:totalTaxable,baseTax,bonusTax,regularMonthly,bonusMonthNet};
 }
 function getPf(base,bPct,pfCap){
   const{erA}=calcInHand(base,0,bPct,pfCap);return erA;
@@ -131,12 +140,15 @@ function MoneyInput({label,value,onChange,hint,placeholder="0",currency="inr",fx
   );
 }
 
-function SliderRow({label,value,onChange,min,max,step=1,suffix="%",accent=CA}){
+function SliderRow({label,value,onChange,min,max,step=1,suffix="%",accent=CA,amountHint=null}){
   return(
     <div style={{marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
         <LB>{label}</LB>
-        <span style={{fontSize:13,fontWeight:700,color:"#1E293B",fontFamily:"Courier New,monospace"}}>{value}{suffix}</span>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          {amountHint&&<span style={{fontSize:11,color:"#64748B",fontFamily:"Courier New,monospace"}}>{amountHint}</span>}
+          <span style={{fontSize:13,fontWeight:700,color:"#1E293B",fontFamily:"Courier New,monospace"}}>{value}{suffix}</span>
+        </div>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:accent,cursor:"pointer"}}/>
     </div>
@@ -576,7 +588,8 @@ export default function OfferCompare(){
   const[curBase,setCurBase]=useState("");
   const[curBonusPct,setCurBonusPct]=useState(0);
   const[curBonusManual,setCurBonusManual]=useState("");
-  const[curPfInBase,setCurPfInBase]=useState(true);
+  const[curBonusManualOn,setCurBonusManualOn]=useState(false);
+  const[curPfInBase,setCurPfInBase]=useState(false);
   const[curBasicAuto,setCurBasicAuto]=useState(true);
   const[curBasicPct,setCurBasicPct]=useState(50);
   const[curPfCap,setCurPfCap]=useState(false);
@@ -596,7 +609,8 @@ export default function OfferCompare(){
   const[newBase,setNewBase]=useState("");
   const[newBonusPct,setNewBonusPct]=useState(0);
   const[newBonusManual,setNewBonusManual]=useState("");
-  const[newPfInBase,setNewPfInBase]=useState(true);
+  const[newBonusManualOn,setNewBonusManualOn]=useState(false);
+  const[newPfInBase,setNewPfInBase]=useState(false);
   const[newBasicAuto,setNewBasicAuto]=useState(true);
   const[newBasicPct,setNewBasicPct]=useState(50);
   const[newPfCap,setNewPfCap]=useState(false);
@@ -628,7 +642,7 @@ export default function OfferCompare(){
   // Sync settings (not base) once when hike mode is toggled on
   useEffect(()=>{
     if(!hikeMode)return;
-    setNewBonusPct(curBonusPct);setNewBonusManual(curBonusManual);
+    setNewBonusPct(curBonusPct);setNewBonusManual(curBonusManual);setNewBonusManualOn(curBonusManualOn);
     setNewPfInBase(curPfInBase);setNewBasicAuto(curBasicAuto);setNewBasicPct(curBasicPct);setNewPfCap(curPfCap);
     setNewIncrOn(curIncrOn);setNewIncrPct(curIncrPct);setNewIncrFrom(curIncrFrom);
     // Also set initial base
@@ -714,9 +728,9 @@ export default function OfferCompare(){
   const hasRetention=newRetentionOn&&newRetentionList.some(r=>tN(r.amount)>0);
 
   const clearAll=()=>{
-    setCurBase("");setCurBonusPct(0);setCurBonusManual("");setCurPfInBase(true);setCurBasicAuto(true);setCurBasicPct(50);setCurPfCap(false);
+    setCurBase("");setCurBonusPct(0);setCurBonusManual("");setCurBonusManualOn(false);setCurPfInBase(false);setCurBasicAuto(true);setCurBasicPct(50);setCurPfCap(false);
     setCurRsuOn(false);setCurRsuAnnual("");setCurRsuGrant("");setCurIncrOn(false);setCurIncrPct(10);setCurIncrFrom("y2");
-    setNewBase("");setNewBonusPct(0);setNewBonusManual("");setNewPfInBase(true);setNewBasicAuto(true);setNewBasicPct(50);setNewPfCap(false);
+    setNewBase("");setNewBonusPct(0);setNewBonusManual("");setNewBonusManualOn(false);setNewPfInBase(false);setNewBasicAuto(true);setNewBasicPct(50);setNewPfCap(false);
     setNewJoining("");setNewRelocation("");setNewRetentionOn(false);setNewRetentionList([{year:2,amount:""}]);
     setNewRsuOn(false);setNewRsuGrant("");setNewIncrOn(false);setNewIncrPct(10);setNewIncrFrom("y2");
     setShowInhand(true);setExpandYear(1);setHikeMode(false);setHikePct(30);
@@ -805,9 +819,15 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>Current Offer</div>
             </div>
             <ST accent={CA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={curBase} onChange={setCurBase} placeholder="e.g. 1000000" accent={CA}/>
-            <SliderRow label="Bonus % of Base" value={curBonusPct} onChange={setCurBonusPct} min={0} max={100} accent={CA}/>
-            <MoneyInput label="Or fixed bonus amount" value={curBonusManual} onChange={setCurBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={CA}/>
+            <MoneyInput label="Annual Base Salary" value={curBase} onChange={v=>{setCurBase(v);if(curBonusPct>0&&tN(v)>0)setCurBonusManual(String(Math.round(tN(v)*curBonusPct/100)));}} placeholder="e.g. 1000000" accent={CA}/>
+            <SliderRow label="Bonus % of Base" value={curBonusPct}
+              onChange={v=>{setCurBonusPct(v);if(tN(curBase)>0){setCurBonusManual(String(Math.round(tN(curBase)*v/100)));setCurBonusManualOn(true);}}}
+              min={0} max={100} accent={CA}
+              amountHint={tN(curBase)>0&&curBonusPct>0?fmtL(Math.round(tN(curBase)*curBonusPct/100)):null}/>
+            {!curBonusManualOn&&<div onClick={()=>setCurBonusManualOn(true)} style={{fontSize:11,color:CA,cursor:"pointer",marginTop:-8,marginBottom:12,textAlign:"right",fontFamily:"Outfit,sans-serif"}}>✏ Enter exact amount →</div>}
+            {curBonusManualOn&&<MoneyInput label="Exact Bonus Amount" value={curBonusManual}
+              onChange={v=>{setCurBonusManual(v);if(tN(curBase)>0&&tN(v)>0)setCurBonusPct(Math.min(100,Math.round(tN(v)/tN(curBase)*100)));if(!v){setCurBonusManualOn(false);}}}
+              placeholder="Overrides % if set" hint="Updates slider % automatically" compact accent={CA}/>}
             <ST accent={CA}>Provident Fund</ST>
             <PfSection accent={CA} pfInBase={curPfInBase} onPfInBase={v=>setCurPfInBase(v===true||v==="true")}
               basicAuto={curBasicAuto} onBasicAuto={v=>setCurBasicAuto(v===true||v==="true")}
@@ -838,10 +858,16 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={newBase} onChange={onNewBaseManual} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
+            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{onNewBaseManual(v);if(newBonusPct>0&&tN(v)>0)setNewBonusManual(String(Math.round(tN(v)*newBonusPct/100)));}} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
             {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#6366F1",marginTop:-10,marginBottom:10,fontFamily:"Outfit,sans-serif"}}>💡 Editing this updates the hike % slider automatically</div>}
-            <SliderRow label="Bonus % of Base" value={newBonusPct} onChange={setNewBonusPct} min={0} max={100} accent={NA}/>
-            <MoneyInput label="Or fixed bonus amount" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={NA}/>
+            <SliderRow label="Bonus % of Base" value={newBonusPct}
+              onChange={v=>{setNewBonusPct(v);if(tN(newBase)>0){setNewBonusManual(String(Math.round(tN(newBase)*v/100)));setNewBonusManualOn(true);}}}
+              min={0} max={100} accent={NA}
+              amountHint={tN(newBase)>0&&newBonusPct>0?fmtL(Math.round(tN(newBase)*newBonusPct/100)):null}/>
+            {!newBonusManualOn&&<div onClick={()=>setNewBonusManualOn(true)} style={{fontSize:11,color:NA,cursor:"pointer",marginTop:-8,marginBottom:12,textAlign:"right",fontFamily:"Outfit,sans-serif"}}>✏ Enter exact amount →</div>}
+            {newBonusManualOn&&<MoneyInput label="Exact Bonus Amount" value={newBonusManual}
+              onChange={v=>{setNewBonusManual(v);if(tN(newBase)>0&&tN(v)>0)setNewBonusPct(Math.min(100,Math.round(tN(v)/tN(newBase)*100)));if(!v){setNewBonusManualOn(false);}}}
+              placeholder="Overrides % if set" hint="Updates slider % automatically" compact accent={NA}/>}
             <ST accent={NA}>Provident Fund</ST>
             <PfSection accent={NA} pfInBase={newPfInBase} onPfInBase={v=>setNewPfInBase(v===true||v==="true")}
               basicAuto={newBasicAuto} onBasicAuto={v=>setNewBasicAuto(v===true||v==="true")}
@@ -904,7 +930,7 @@ export default function OfferCompare(){
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:"#93C5FD",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Current</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(y1.cur.inHand/12)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                   <div style={{textAlign:"center"}}>
                     <div style={{padding:"8px 14px",borderRadius:20,fontSize:13,fontWeight:900,background:y1.delta>=0?"rgba(52,211,153,.25)":"rgba(248,113,113,.25)",color:y1.delta>=0?"#6EE7B7":"#FCA5A5",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"rgba(52,211,153,.5)":"rgba(248,113,113,.5)"}`,whiteSpace:"nowrap",boxShadow:y1.delta>=0?"0 0 20px rgba(52,211,153,.2)":"0 0 20px rgba(248,113,113,.2)"}}>
@@ -915,7 +941,7 @@ export default function OfferCompare(){
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#6EE7B7",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>New Offer</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(y1.new.inHand/12)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                 </div>
               </div>
@@ -1010,11 +1036,11 @@ export default function OfferCompare(){
                     <div style={{background:"linear-gradient(135deg,#4F46E5,#7C3AED)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                       <div>
                         <div style={{fontSize:13,fontWeight:800,color:"#fff",fontFamily:"Sora,sans-serif"}}>💰 In-Hand Breakdown (Year 1)</div>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>New Tax Regime · Std deduction ₹75,000 · EE PF deducted</div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>New Tax Regime · Std deduction ₹75,000 · EE PF deducted · ER PF excluded (employer cost)</div>
                       </div>
-                      <a href="/finance-tools/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
+                      <Link to="/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
                         Full Calculator →
-                      </a>
+                      </Link>
                     </div>
                     <div style={{background:"#fff",padding:"16px 18px"}}>
                       <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
@@ -1036,9 +1062,18 @@ export default function OfferCompare(){
                                   <span style={{fontSize:12,fontWeight:l.startsWith("=")?800:600,color:c,fontFamily:"Courier New,monospace"}}>{fmtL(Math.abs(v))}</span>
                                 </div>
                               ))}
-                              <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-                                <span style={{fontSize:11,color:"#94A3B8"}}>Monthly take-home</span>
-                                <span style={{fontSize:13,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.inHand/12)}</span>
+                              <div style={{marginTop:8,padding:"8px 10px",background:`${s.color}0D`,borderRadius:8,border:`1px solid ${s.color}30`}}>
+                                <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Monthly Take-home</div>
+                                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.d.bonusMonthNet!==s.d.regularMonthly?4:0}}>
+                                  <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>{s.d.bonusMonthNet!==s.d.regularMonthly?"Regular months (11)":"Monthly (all 12)"}</span>
+                                  <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.regularMonthly)}</span>
+                                </div>
+                                {s.d.bonusMonthNet!==s.d.regularMonthly&&(
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                    <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>Bonus month <span style={{fontSize:10,color:"#94A3B8"}}>(incl. bonus − extra TDS)</span></span>
+                                    <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.bonusMonthNet)}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1046,12 +1081,12 @@ export default function OfferCompare(){
                       </div>
                       <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                         <div>
-                          <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Monthly gain in hand</div>
-                          <div style={{fontSize:22,fontWeight:900,color:gain>=0?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{gain>=0?"+":"-"}{fmtL(Math.abs(gain)/12)}</div>
-                          <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Annual: {gain>=0?"+":"-"}{fmtL(Math.abs(gain))}</div>
+                          <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Regular month gain</div>
+                          <div style={{fontSize:22,fontWeight:900,color:(newIH.regularMonthly-curIH.regularMonthly)>=0?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{(newIH.regularMonthly-curIH.regularMonthly)>=0?"+":"-"}{fmtL(Math.abs(newIH.regularMonthly-curIH.regularMonthly))}</div>
+                          <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Annual in-hand: {gain>=0?"+":"-"}{fmtL(Math.abs(gain))}</div>
                         </div>
-                        <div style={{fontSize:10,color:"#94A3B8",maxWidth:180,textAlign:"right",lineHeight:1.5}}>
-                          ⚠ Excludes HRA, PT, NPS &amp; custom deductions.<br/>Use Full Calculator for exact payslip.
+                        <div style={{fontSize:10,color:"#94A3B8",maxWidth:220,textAlign:"right",lineHeight:1.5}}>
+                          ⚠ Monthly shows base-only TDS (regular months).<br/>Bonus month shown separately above.<br/>Excludes HRA, PT, NPS &amp; perks.
                         </div>
                       </div>
                     </div>
