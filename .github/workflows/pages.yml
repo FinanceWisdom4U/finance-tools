@@ -1,0 +1,44 @@
+name: Deploy Dev Preview to GitHub Pages
+
+on:
+  push:
+    branches: [claude/finance-tools-dev-B3y84]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+        env:
+          DISABLE_ESLINT_PLUGIN: true
+          # Use path-only PUBLIC_URL so assets resolve correctly on GitHub Pages
+          # GitHub Pages serves this repo at: https://financewisdom4u.github.io/finance-tools
+          PUBLIC_URL: /finance-tools
+
+      - name: Add 404.html for SPA deep-link routing
+        # GitHub Pages serves 404.html when a path isn't a real file.
+        # Copying index.html → 404.html lets BrowserRouter handle all routes.
+        run: cp build/index.html build/404.html
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          publish_branch: gh-pages
+          force_orphan: true
