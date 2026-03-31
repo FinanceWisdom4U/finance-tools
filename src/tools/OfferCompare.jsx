@@ -95,13 +95,11 @@ const ST=({children,accent})=>(
   </div>
 );
 
-function MoneyInput({label,value,onChange,hint,placeholder="e.g. 10,00,000",currency="inr",fx=84,compact=false,accent}){
+function MoneyInput({label,value,onChange,hint,placeholder="0",currency="inr",fx=84,compact=false,accent}){
   const[foc,setFoc]=useState(false);
   const prefix=currency==="usd"?"$":"₹";
   const raw=tN(value);
-  // Display: formatted with Indian commas when blurred; raw while typing
-  const displayVal=foc?value:(raw>0?new Intl.NumberFormat("en-IN").format(raw):"");
-  const fmtHint=raw>0?(currency==="usd"?`≈ ${fmtL(raw*(tN(fx)||84))} @ ₹${tN(fx)||84}/USD`:`${fmtL(raw)}`):null;
+  const fmtHint=raw>0?(currency==="usd"?`≈ ${fmtL(raw*(tN(fx)||84))} @ ₹${tN(fx)||84}/USD`:`= ${fmtL(raw)}`):null;
   const bdr=foc?(accent||"#6366F1"):"#E2E8F0";
   return(
     <div style={{marginBottom:compact?10:14}}>
@@ -112,9 +110,9 @@ function MoneyInput({label,value,onChange,hint,placeholder="e.g. 10,00,000",curr
       {hint&&<HT>{hint}</HT>}
       <div style={{display:"flex",alignItems:"center",border:`2px solid ${bdr}`,borderRadius:10,overflow:"hidden",background:foc?"#fff":"#F8FAFC",transition:"border-color .15s",boxShadow:foc?`0 0 0 3px ${(accent||"#6366F1")}18`:"none"}}>
         <span style={{padding:"0 10px",color:foc?(accent||"#6366F1"):"#94A3B8",fontSize:16,fontWeight:500,borderRight:`1px solid ${bdr}`,background:foc?"#F8F9FF":"#F1F5F9",alignSelf:"stretch",display:"flex",alignItems:"center",transition:"all .15s",flexShrink:0}}>{prefix}</span>
-        <input type="text" inputMode="numeric" value={displayVal}
-          onChange={e=>onChange(parseM(e.target.value))}
-          onFocus={()=>{setFoc(true);}}
+        <input type="text" inputMode="numeric" value={value}
+          onChange={e=>onChange(e.target.value.replace(/\D/g,""))}
+          onFocus={()=>setFoc(true)}
           onBlur={()=>setFoc(false)}
           placeholder={placeholder}
           style={{flex:1,padding:compact?"8px 10px":"11px 12px",border:"none",background:"transparent",fontSize:15,fontFamily:"Courier New,monospace",outline:"none",color:"#1E293B",minWidth:0,fontWeight:600,letterSpacing:"-0.02em"}}/>
@@ -785,7 +783,7 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>Current Offer</div>
             </div>
             <ST accent={CA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={curBase} onChange={setCurBase} placeholder="e.g. 10,00,000  (10L)" accent={CA}/>
+            <MoneyInput label="Annual Base Salary" value={curBase} onChange={setCurBase} placeholder="e.g. 1000000" accent={CA}/>
             <SliderRow label="Bonus % of Base" value={curBonusPct} onChange={setCurBonusPct} min={0} max={100} accent={CA}/>
             <MoneyInput label="Or fixed bonus amount" value={curBonusManual} onChange={setCurBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={CA}/>
             <ST accent={CA}>Provident Fund</ST>
@@ -818,7 +816,7 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{if(!hikeMode)setNewBase(v);}} placeholder={hikeMode?"Auto-filled from hike % ↑":"e.g. 15,00,000  (15L)"} accent={NA}/>
+            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{if(!hikeMode)setNewBase(v);}} placeholder={hikeMode?"Auto-filled from hike % ↑":"e.g. 1500000"} accent={NA}/>
             {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#64748B",marginTop:-10,marginBottom:10,fontFamily:"Courier New,monospace"}}>Auto: {fmtL(Math.round(tN(curBase)*(1+hikePct/100)))} · change hike % above to update</div>}
             <SliderRow label="Bonus % of Base" value={newBonusPct} onChange={setNewBonusPct} min={0} max={100} accent={NA}/>
             <MoneyInput label="Or fixed bonus amount" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={NA}/>
