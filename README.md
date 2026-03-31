@@ -7,9 +7,10 @@ Each tool is a standalone component — add new tools by dropping a JSX file and
 
 ## Live Tools
 
-| Tool | Path |
-|---|---|
-| New Regime Salary Calculator | `/finance-tools/new-regime-salary-calculator` |
+| Tool | Path | Description |
+|---|---|---|
+| New Regime Salary Calculator | `/finance-tools/new-regime-salary-calculator` | Compute take-home salary under the New Tax Regime FY 2026-27 — slabs, PF, HRA, NPS, bonus TDS |
+| Offer Comparison Calculator | `/finance-tools/offer-comparison` | Compare a current offer vs a new offer across 4 years — base, bonus, RSU/LTI, joining bonus, increments, in-hand breakdown |
 
 ---
 
@@ -33,12 +34,44 @@ finance-tools/
 │   ├── index.js                ← React root
 │   ├── App.jsx                 ← routing + tool registry
 │   └── tools/
-│       └── NewRegimeSalaryCalc.jsx   ← tool #1
+│       ├── NewRegimeSalaryCalc.jsx   ← tool #1: salary calculator
+│       ├── NewRegimeSalaryCalc.test.js
+│       └── OfferCompare.jsx          ← tool #2: offer comparison
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          ← GitHub Actions build pipeline
+│       ├── deploy.yml          ← GitHub Actions build + artifact upload
+│       └── pages.yml           ← GitHub Pages dev preview
 └── package.json
 ```
+
+---
+
+## Tool: Offer Comparison Calculator
+
+**Path:** `/finance-tools/offer-comparison`
+**File:** `src/tools/OfferCompare.jsx`
+
+Side-by-side job offer comparison across 4 years with full TC and in-hand breakdown.
+
+### Features
+
+- **Current vs New Offer** — base, bonus, ER PF, RSU/LTI, joining bonus, relocation, retention
+- **Quick Fill / Hike Mode** — enter a hike % (0–500%) to auto-fill the new offer base; slider covers 0–100%, manual entry allows beyond 100%
+- **RSU / LTI vesting** — 3 or 4 year schedules: Equal, 1-yr Cliff, Back-loaded, Google-style, Custom; supports RSU / ESOP / Cash LTI
+- **Year-by-year layered comparison** — expandable accordion per year with delta table
+- **In-hand breakdown** — New Tax Regime FY 2026-27, standard deduction ₹75,000, EE PF deducted, ER PF shown as employer cost; correct TDS split for regular months vs bonus month
+- **PF configuration** — "On-Top of Base" (default) or "Inside Base" (ER PF baked into quoted CTC); both modes compute cashable base correctly
+- **Annual increment projection** — optional per-side YoY increment; apply from Year 1 or Year 2
+- **Cumulative 4-year summary** — total TC delta, breakeven year, verdict
+- **Mobile responsive** — single-column stacked layout below 640px, in-hand cards stack at 480px
+
+### Tax Engine (New Regime FY 2026-27)
+
+Slabs: 0–4L @ 0%, 4–8L @ 5%, 8–12L @ 10%, 12–16L @ 15%, 16–20L @ 20%, 20–24L @ 25%, 24L+ @ 30%
+Rebate: full rebate if taxable income ≤ ₹12L
+Surcharge: >50L = 10%, >1Cr = 15%, >2Cr = 25% (new regime cap; 37% abolished Budget 2023)
+Marginal relief applied at each surcharge threshold.
+Cess: 4% on (tax + surcharge).
 
 ---
 
