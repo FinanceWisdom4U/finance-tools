@@ -810,9 +810,9 @@ export default function OfferCompare(){
                   style={{width:68,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
                 <span style={{fontSize:13,fontWeight:700,color:PU,marginLeft:-6}}>%</span>
               </div>
-              <div style={{position:"relative",height:16,marginTop:2,marginBottom:hikePct>100?4:8}}>
-                {[[0,"0%"],[25,"25%"],[50,"50%"],[75,"75%"],[100,"100%"]].map(([v,l])=>(
-                  <span key={v} style={{position:"absolute",left:`${v}%`,transform:"translateX(-50%)",fontSize:10,color:"#94A3B8",whiteSpace:"nowrap"}}>{l}</span>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:3,marginBottom:hikePct>100?4:8}}>
+                {["0%","25%","50%","75%","100%"].map(l=>(
+                  <span key={l} style={{fontSize:10,color:"#94A3B8"}}>{l}</span>
                 ))}
               </div>
               {hikePct>100&&<div style={{fontSize:10,color:"#6366F1",marginBottom:8}}>↑ Slider capped at 100% — manual entry active ({hikePct}%)</div>}
