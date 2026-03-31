@@ -399,7 +399,7 @@ function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
       {showInhand&&(
         <div style={{marginTop:5,display:"flex",justifyContent:"space-between"}}>
           <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>Est. in-hand/yr</span>
-          <span style={{fontSize:11,fontFamily:"Courier New,monospace",color:"#475569"}}>{fmtL(getInHand(bN,bonN,basicPct,pfCap))}</span>
+          <span style={{fontSize:11,fontFamily:"Courier New,monospace",color:"#475569"}}>{fmtL(getInHand(bN,bonN,basicPct,pfCap,pfInBase))}</span>
         </div>
       )}
     </div>
@@ -441,7 +441,7 @@ function NewTCPreview({base,bonus,rsuY1,erPf,joining,relocation,retentionY1,pfIn
       {showInhand&&(
         <div style={{marginTop:5,display:"flex",justifyContent:"space-between"}}>
           <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>Est. in-hand/yr</span>
-          <span style={{fontSize:11,fontFamily:"Courier New,monospace",color:"#475569"}}>{fmtL(getInHand(bN,bonN,basicPct,pfCap))}</span>
+          <span style={{fontSize:11,fontFamily:"Courier New,monospace",color:"#475569"}}>{fmtL(getInHand(bN,bonN,basicPct,pfCap,pfInBase))}</span>
         </div>
       )}
     </div>
@@ -724,8 +724,8 @@ export default function OfferCompare(){
       const nTc=nBase+nBonus+nErPf+nJoin+nReloc+nRet+nRsu;
       return{
         year:Y,
-        cur:{base:cBase,bonus:cBonus,erPf:cErPf,rsu:cRsu,joining:0,relocation:0,retention:0,tc:cTc,inHand:getInHand(cBase,cBonus,curEffBasic,curPfCap)},
-        new:{base:nBase,bonus:nBonus,erPf:nErPf,rsu:nRsu,joining:nJoin,relocation:nReloc,retention:nRet,tc:nTc,inHand:getInHand(nBase,nBonus,newEffBasic,newPfCap)},
+        cur:{base:cBase,bonus:cBonus,erPf:cErPf,rsu:cRsu,joining:0,relocation:0,retention:0,tc:cTc,inHand:getInHand(cBase,cBonus,curEffBasic,curPfCap,curPfInBase)},
+        new:{base:nBase,bonus:nBonus,erPf:nErPf,rsu:nRsu,joining:nJoin,relocation:nReloc,retention:nRet,tc:nTc,inHand:getInHand(nBase,nBonus,newEffBasic,newPfCap,newPfInBase)},
         delta:nTc-cTc,deltaPct:cTc>0?((nTc-cTc)/cTc*100).toFixed(1):"0.0"
       };
     });
@@ -967,7 +967,7 @@ export default function OfferCompare(){
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:"#93C5FD",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Current</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                   <div style={{textAlign:"center"}}>
                     <div style={{padding:"8px 14px",borderRadius:20,fontSize:13,fontWeight:900,background:y1.delta>=0?"rgba(52,211,153,.25)":"rgba(248,113,113,.25)",color:y1.delta>=0?"#6EE7B7":"#FCA5A5",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"rgba(52,211,153,.5)":"rgba(248,113,113,.5)"}`,whiteSpace:"nowrap",boxShadow:y1.delta>=0?"0 0 20px rgba(52,211,153,.2)":"0 0 20px rgba(248,113,113,.2)"}}>
@@ -978,7 +978,7 @@ export default function OfferCompare(){
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#6EE7B7",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>New Offer</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                 </div>
               </div>
@@ -1061,8 +1061,8 @@ export default function OfferCompare(){
 
               {/* IN-HAND — salary-calc style breakdown */}
               {(()=>{
-                const curIH=calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap);
-                const newIH=calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap);
+                const curIH=calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase);
+                const newIH=calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase);
                 const gain=newIH.inHand-curIH.inHand;
                 const curErPfY1=!curPfInBase?getPf(y1.cur.base,curEffBasic,curPfCap):0;
                 const newErPfY1=!newPfInBase?getPf(y1.new.base,newEffBasic,newPfCap):0;
