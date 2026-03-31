@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/finance-tools/static/js/main.c0b6e9bb.js",
+    "index.html": "/finance-tools/index.html",
+    "main.c0b6e9bb.js.map": "/finance-tools/static/js/main.c0b6e9bb.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.c0b6e9bb.js"
+  ]
+}
