@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 /* ═══════════════════════════════════════════
    TAX ENGINE — New Regime FY 2026-27
@@ -95,19 +95,30 @@ const ST=({children,accent})=>(
   </div>
 );
 
-function MoneyInput({label,value,onChange,hint,placeholder="0",currency="inr",fx=84,compact=false}){
+function MoneyInput({label,value,onChange,hint,placeholder="e.g. 10,00,000",currency="inr",fx=84,compact=false,accent}){
+  const[foc,setFoc]=useState(false);
   const prefix=currency==="usd"?"$":"₹";
-  const conv=tN(value)>0?(currency==="usd"?`≈ ${fmtL(tN(value)*(tN(fx)||84))} @ ₹${tN(fx)||84}/USD`:`= ${fmtL(tN(value))}`):null;
+  const raw=tN(value);
+  // Display: formatted with Indian commas when blurred; raw while typing
+  const displayVal=foc?value:(raw>0?new Intl.NumberFormat("en-IN").format(raw):"");
+  const fmtHint=raw>0?(currency==="usd"?`≈ ${fmtL(raw*(tN(fx)||84))} @ ₹${tN(fx)||84}/USD`:`${fmtL(raw)}`):null;
+  const bdr=foc?(accent||"#6366F1"):"#E2E8F0";
   return(
     <div style={{marginBottom:compact?10:14}}>
-      <LB>{label}</LB>
-      {hint&&<HT>{hint}</HT>}
-      <div style={{display:"flex",alignItems:"center",border:"1.5px solid #E2E8F0",borderRadius:8,overflow:"hidden",background:"#F8FAFC"}}>
-        <span style={{padding:"0 8px",color:"#94A3B8",fontSize:14,fontWeight:600,borderRight:"1px solid #E2E8F0",background:"#F1F5F9",minWidth:26,textAlign:"center",flexShrink:0}}>{prefix}</span>
-        <input type="text" inputMode="numeric" value={value} onChange={e=>onChange(parseM(e.target.value))} placeholder={placeholder}
-          style={{flex:1,padding:compact?"7px 8px":"9px 10px",border:"none",background:"transparent",fontSize:13,fontFamily:"Courier New,monospace",outline:"none",color:"#1E293B",minWidth:0}}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:3}}>
+        <LB>{label}</LB>
+        {fmtHint&&<span style={{fontSize:12,fontWeight:700,color:accent||"#6366F1",fontFamily:"Courier New,monospace"}}>{fmtHint}</span>}
       </div>
-      {conv&&<div style={{fontSize:11,color:"#64748B",marginTop:2,fontFamily:"Courier New,monospace"}}>{conv}</div>}
+      {hint&&<HT>{hint}</HT>}
+      <div style={{display:"flex",alignItems:"center",border:`2px solid ${bdr}`,borderRadius:10,overflow:"hidden",background:foc?"#fff":"#F8FAFC",transition:"border-color .15s",boxShadow:foc?`0 0 0 3px ${(accent||"#6366F1")}18`:"none"}}>
+        <span style={{padding:"0 10px",color:foc?(accent||"#6366F1"):"#94A3B8",fontSize:16,fontWeight:500,borderRight:`1px solid ${bdr}`,background:foc?"#F8F9FF":"#F1F5F9",alignSelf:"stretch",display:"flex",alignItems:"center",transition:"all .15s",flexShrink:0}}>{prefix}</span>
+        <input type="text" inputMode="numeric" value={displayVal}
+          onChange={e=>onChange(parseM(e.target.value))}
+          onFocus={()=>{setFoc(true);}}
+          onBlur={()=>setFoc(false)}
+          placeholder={placeholder}
+          style={{flex:1,padding:compact?"8px 10px":"11px 12px",border:"none",background:"transparent",fontSize:15,fontFamily:"Courier New,monospace",outline:"none",color:"#1E293B",minWidth:0,fontWeight:600,letterSpacing:"-0.02em"}}/>
+      </div>
     </div>
   );
 }
@@ -147,14 +158,25 @@ function Pills({opts,val,onChange,accent}){
 }
 
 function CurrPill({currency,onChange,fx,onFx}){
+  const[fetching,setFetching]=useState(false);
+  const fetchRate=()=>{
+    setFetching(true);
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then(r=>r.json()).then(d=>{const r=d?.rates?.INR;if(r)onFx(String(Math.round(r)));})
+      .catch(()=>{}).finally(()=>setFetching(false));
+  };
+  useEffect(()=>{if(currency==="usd"&&tN(fx)<50)fetchRate();},[currency]);// eslint-disable-line
   return(
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+    <div style={{marginBottom:10}}>
       <Pills opts={[{v:"usd",l:"$ USD"},{v:"inr",l:"₹ INR"}]} val={currency} onChange={onChange} accent={PU}/>
       {currency==="usd"&&(
-        <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
           <span style={{fontSize:11,color:"#64748B",whiteSpace:"nowrap"}}>1 USD =</span>
-          <input type="text" value={fx} onChange={e=>onFx(parseM(e.target.value))} style={{width:48,padding:"4px 6px",border:"1px solid #E2E8F0",borderRadius:6,fontSize:12,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none"}}/>
+          <input type="text" value={fx} onChange={e=>onFx(parseM(e.target.value))} style={{width:52,padding:"5px 6px",border:"1.5px solid #E2E8F0",borderRadius:7,fontSize:13,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",fontWeight:700}}/>
           <span style={{fontSize:11,color:"#64748B"}}>₹</span>
+          <button onClick={fetchRate} disabled={fetching} style={{padding:"4px 9px",borderRadius:8,border:"1px solid #E2E8F0",background:"#F8FAFC",color:PU,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>
+            {fetching?"…":"↻ Live"}
+          </button>
         </div>
       )}
     </div>
@@ -459,16 +481,26 @@ function YearAccordion({yd,showPf,hasJoining,hasRelocation,hasRsu,hasRetention,l
 
   return(
     <div style={{borderRadius:12,border:"1.5px solid #E2E8F0",marginBottom:10,overflow:"hidden"}}>
-      <div onClick={onToggle} style={{padding:"10px 12px",cursor:"pointer",background:expanded?"#F8FAFF":"#FAFAFA",display:"flex",alignItems:"center",gap:10,userSelect:"none"}}>
-        <div style={{width:30,height:30,borderRadius:8,flexShrink:0,background:expanded?"#EFF6FF":"#F1F5F9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,fontFamily:"Sora,sans-serif",color:expanded?CA:"#64748B"}}>Y{year}</div>
+      <div onClick={onToggle} style={{padding:"12px 14px",cursor:"pointer",background:expanded?"linear-gradient(135deg,#EFF6FF,#F0FDF4)":"#FAFAFA",display:"flex",alignItems:"center",gap:10,userSelect:"none",transition:"background .2s"}}>
+        <div style={{width:34,height:34,borderRadius:10,flexShrink:0,
+          background:expanded?`linear-gradient(135deg,${CA},#3B82F6)`:"#E2E8F0",
+          display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,fontFamily:"Sora,sans-serif",color:expanded?"#fff":"#64748B",
+          boxShadow:expanded?"0 4px 12px rgba(30,64,175,.3)":"none",transition:"all .2s"}}>Y{year}</div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#334155",fontFamily:"Outfit,sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Year {year}{year===1?" — Base Year":""}</div>
-          <div style={{fontSize:11,color:"#94A3B8",fontFamily:"Courier New,monospace",marginTop:1}}>{fmtL(cur.tc)} → {fmtL(nw.tc)}</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#1E293B",fontFamily:"Outfit,sans-serif"}}>Year {year}{year===1?" — Base Year":""}</div>
+          <div style={{fontSize:11,color:"#64748B",fontFamily:"Courier New,monospace",marginTop:1}}>
+            <span style={{color:CA,fontWeight:600}}>{fmtL(cur.tc)}</span>
+            <span style={{color:"#94A3B8"}}> → </span>
+            <span style={{color:NA,fontWeight:600}}>{fmtL(nw.tc)}</span>
+          </div>
         </div>
-        <div style={{padding:"3px 10px",borderRadius:12,fontSize:11,fontWeight:700,flexShrink:0,background:dPos?"#DCFCE7":"#FEE2E2",color:dPos?"#15803D":"#DC2626",fontFamily:"Courier New,monospace",border:`1px solid ${dPos?"#86EFAC":"#FCA5A5"}`}}>
+        <div style={{padding:"5px 12px",borderRadius:14,fontSize:12,fontWeight:800,flexShrink:0,
+          background:dPos?"linear-gradient(135deg,#10B981,#34D399)":"linear-gradient(135deg,#EF4444,#F87171)",
+          color:"#fff",fontFamily:"Courier New,monospace",
+          boxShadow:dPos?"0 4px 12px rgba(16,185,129,.35)":"0 4px 12px rgba(239,68,68,.35)"}}>
           {dPos?"+":""}{fmtL(delta)}
         </div>
-        <span style={{color:"#94A3B8",fontSize:10,flexShrink:0}}>{expanded?"▲":"▼"}</span>
+        <span style={{color:"#94A3B8",fontSize:12,flexShrink:0}}>{expanded?"▲":"▼"}</span>
       </div>
 
       {expanded&&(
@@ -576,19 +608,21 @@ export default function OfferCompare(){
   const[newIncrOn,setNewIncrOn]=useState(false);
   const[newIncrPct,setNewIncrPct]=useState(10);
 
-  const[showInhand,setShowInhand]=useState(false);
+  const[showInhand,setShowInhand]=useState(true);
   const[expandYear,setExpandYear]=useState(1);
 
-  // ── Increment / Hike quick-fill
+  // ── Increment / Hike quick-fill (reactive)
   const[hikeMode,setHikeMode]=useState(false);
   const[hikePct,setHikePct]=useState(30);
+  // Increment timing: "y1" = applies from Year 1 (immediate), "y2" = applies from Year 2 onwards
+  const[curIncrFrom,setCurIncrFrom]=useState("y2");
+  const[newIncrFrom,setNewIncrFrom]=useState("y2");
 
-  // Auto-fill new base when hike mode is active
-  const applyHike=()=>{
-    const b=tN(curBase);
-    if(!b)return;
-    const nb=Math.round(b*(1+hikePct/100));
-    setNewBase(String(nb));
+  // Reactively sync new offer base when hike mode is active
+  useEffect(()=>{
+    if(!hikeMode)return;
+    const b=tN(curBase);if(!b)return;
+    setNewBase(String(Math.round(b*(1+hikePct/100))));
     setNewBonusPct(curBonusPct);
     setNewBonusManual(curBonusManual);
     setNewPfInBase(curPfInBase);
@@ -597,7 +631,8 @@ export default function OfferCompare(){
     setNewPfCap(curPfCap);
     setNewIncrOn(curIncrOn);
     setNewIncrPct(curIncrPct);
-  };
+    setNewIncrFrom(curIncrFrom);
+  },[hikeMode,hikePct,curBase,curBonusPct,curBonusManual,curPfInBase,curBasicAuto,curBasicPct,curPfCap,curIncrOn,curIncrPct,curIncrFrom]);// eslint-disable-line
 
   const curEffBasic=curBasicAuto?50:curBasicPct;
   const newEffBasic=newBasicAuto?50:newBasicPct;
@@ -617,8 +652,12 @@ export default function OfferCompare(){
     if(!tN(curBase)||!tN(newBase))return null;
     const years=[1,2,3,4].map(Y=>{
       const idx=Y-1;
-      const cG=curIncrOn?Math.pow(1+curIncrPct/100,idx):1;
-      const nG=newIncrOn?Math.pow(1+newIncrPct/100,idx):1;
+      // incrFrom "y1" = Year 1 already has increment (offer letter includes new hike)
+      // incrFrom "y2" = Year 1 is base; increment starts from Year 2
+      const cIdxEff=curIncrFrom==="y1"?idx:Math.max(0,idx-1);
+      const nIdxEff=newIncrFrom==="y1"?idx:Math.max(0,idx-1);
+      const cG=curIncrOn?Math.pow(1+curIncrPct/100,cIdxEff):1;
+      const nG=newIncrOn?Math.pow(1+newIncrPct/100,nIdxEff):1;
       const cBase=tN(curBase)*cG;
       const cBonus=tN(curBonusManual)>0?tN(curBonusManual)*cG:cBase*curBonusPct/100;
       const cErPf=!curPfInBase?getPf(cBase,curEffBasic,curPfCap):0;
@@ -645,9 +684,9 @@ export default function OfferCompare(){
     for(const y of years){rC+=y.cur.tc;rN+=y.new.tc;if(rN>rC&&!beY)beY=y.year;}
     return{years,cumCur,cumNew,cumDelta:cumNew-cumCur,breakEvenYear:beY};
   },[
-    curBase,curBonusPct,curBonusManual,curPfInBase,curEffBasic,curPfCap,curRsuArr,curIncrOn,curIncrPct,
+    curBase,curBonusPct,curBonusManual,curPfInBase,curEffBasic,curPfCap,curRsuArr,curIncrOn,curIncrPct,curIncrFrom,
     newBase,newBonusPct,newBonusManual,newPfInBase,newEffBasic,newPfCap,
-    newJoining,newRelocation,newRetentionOn,newRetentionList,newRsuArr,newIncrOn,newIncrPct
+    newJoining,newRelocation,newRetentionOn,newRetentionList,newRsuArr,newIncrOn,newIncrPct,newIncrFrom
   ]);
 
   const hasJoining=tN(newJoining)>0;
@@ -657,11 +696,11 @@ export default function OfferCompare(){
 
   const clearAll=()=>{
     setCurBase("");setCurBonusPct(0);setCurBonusManual("");setCurPfInBase(true);setCurBasicAuto(true);setCurBasicPct(50);setCurPfCap(false);
-    setCurRsuOn(false);setCurRsuAnnual("");setCurRsuGrant("");setCurIncrOn(false);setCurIncrPct(10);
+    setCurRsuOn(false);setCurRsuAnnual("");setCurRsuGrant("");setCurIncrOn(false);setCurIncrPct(10);setCurIncrFrom("y2");
     setNewBase("");setNewBonusPct(0);setNewBonusManual("");setNewPfInBase(true);setNewBasicAuto(true);setNewBasicPct(50);setNewPfCap(false);
     setNewJoining("");setNewRelocation("");setNewRetentionOn(false);setNewRetentionList([{year:2,amount:""}]);
-    setNewRsuOn(false);setNewRsuGrant("");setNewIncrOn(false);setNewIncrPct(10);
-    setShowInhand(false);setExpandYear(1);
+    setNewRsuOn(false);setNewRsuGrant("");setNewIncrOn(false);setNewIncrPct(10);setNewIncrFrom("y2");
+    setShowInhand(true);setExpandYear(1);setHikeMode(false);setHikePct(30);
   };
 
   const prevBonus=tN(curBonusManual)>0?tN(curBonusManual):tN(curBase)*curBonusPct/100;
@@ -703,30 +742,35 @@ export default function OfferCompare(){
           </div>
           {hikeMode&&(
             <div style={{padding:"12px 0 0"}}>
-              <div style={{fontSize:12,color:"#64748B",marginBottom:10,lineHeight:1.4}}>Enter your current salary in the <strong>Current</strong> panel, set the expected hike %, and click <strong>Apply</strong> — the New Offer side fills automatically.</div>
-              <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                <div style={{flex:1,minWidth:200}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <label style={{fontSize:12,fontWeight:600,color:"#475569"}}>Expected Hike %</label>
-                    <span style={{fontSize:14,fontWeight:800,color:PU,fontFamily:"Courier New,monospace"}}>{hikePct}%</span>
-                  </div>
-                  <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>setHikePct(Number(e.target.value))} style={{width:"100%",accentColor:PU,cursor:"pointer"}}/>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94A3B8",marginTop:2}}>
-                    <span>1%</span><span>50%</span><span>100%</span><span>150%</span>
-                  </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+              {!tN(curBase)&&<div style={{fontSize:12,color:"#F59E0B",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:8,padding:"8px 12px",marginBottom:10}}>Enter your current base salary in the <strong>Current</strong> panel first — New Offer updates live.</div>}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,gap:8,flexWrap:"wrap"}}>
+                <label style={{fontSize:13,fontWeight:700,color:"#334155"}}>Expected Hike %</label>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
                   {tN(curBase)>0&&(
-                    <div style={{fontSize:11,color:"#64748B",fontFamily:"Courier New,monospace"}}>
-                      {fmtL(tN(curBase))} → <strong style={{color:NA}}>{fmtL(Math.round(tN(curBase)*(1+hikePct/100)))}</strong>
-                    </div>
+                    <span style={{fontSize:13,fontFamily:"Courier New,monospace",color:"#64748B"}}>
+                      {fmtL(tN(curBase))} <span style={{color:"#94A3B8"}}>→</span> <strong style={{color:NA,fontSize:15}}>{fmtL(Math.round(tN(curBase)*(1+hikePct/100)))}</strong>
+                    </span>
                   )}
-                  <button onClick={applyHike} disabled={!tN(curBase)} style={{padding:"9px 20px",borderRadius:10,border:"none",background:tN(curBase)?PU:"#E2E8F0",color:tN(curBase)?"#fff":"#94A3B8",fontSize:13,fontWeight:700,cursor:tN(curBase)?"pointer":"not-allowed",fontFamily:"Outfit,sans-serif"}}>
-                    ↗ Apply to New Offer
-                  </button>
-                  {!tN(curBase)&&<div style={{fontSize:10,color:"#94A3B8",textAlign:"center"}}>Enter current salary first</div>}
+                  <span style={{fontSize:22,fontWeight:900,color:PU,fontFamily:"Sora,sans-serif",minWidth:52,textAlign:"right"}}>{hikePct}%</span>
                 </div>
               </div>
+              <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>setHikePct(Number(e.target.value))}
+                style={{width:"100%",accentColor:PU,cursor:"pointer",height:6}}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94A3B8",marginTop:2,marginBottom:8}}>
+                <span>1%</span><span style={{color:hikePct>=25&&hikePct<=35?"#6366F1":"inherit"}}>30%</span><span>50%</span><span>100%</span><span>150%</span>
+              </div>
+              {tN(curBase)>0&&(
+                <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>New Offer Base (auto-filled)</div>
+                    <div style={{fontSize:18,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>{fmtL(Math.round(tN(curBase)*(1+hikePct/100)))}</div>
+                  </div>
+                  <div style={{fontSize:11,color:"#64748B",textAlign:"right"}}>
+                    <div>Monthly raise: <strong style={{color:NA}}>{fmtL(Math.round(tN(curBase)*hikePct/100/12))}</strong></div>
+                    <div style={{marginTop:2,color:"#94A3B8"}}>New Offer updates automatically</div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -741,9 +785,9 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>Current Offer</div>
             </div>
             <ST accent={CA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={curBase} onChange={setCurBase} placeholder="e.g. 9200000"/>
+            <MoneyInput label="Annual Base Salary" value={curBase} onChange={setCurBase} placeholder="e.g. 10,00,000  (10L)" accent={CA}/>
             <SliderRow label="Bonus % of Base" value={curBonusPct} onChange={setCurBonusPct} min={0} max={100} accent={CA}/>
-            <MoneyInput label="Or fixed bonus" value={curBonusManual} onChange={setCurBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact/>
+            <MoneyInput label="Or fixed bonus amount" value={curBonusManual} onChange={setCurBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={CA}/>
             <ST accent={CA}>Provident Fund</ST>
             <PfSection accent={CA} pfInBase={curPfInBase} onPfInBase={v=>setCurPfInBase(v===true||v==="true")}
               basicAuto={curBasicAuto} onBasicAuto={v=>setCurBasicAuto(v===true||v==="true")}
@@ -756,7 +800,14 @@ export default function OfferCompare(){
               custom={curRsuCustom} onCustom={setCurRsuCustom} currency={curRsuCur} onCurrency={setCurRsuCur} fx={curRsuFx} onFx={setCurRsuFx}/>
             <ST accent={CA}>Salary Growth</ST>
             <Toggle on={curIncrOn} onToggle={()=>setCurIncrOn(!curIncrOn)} label="Apply YoY increment" accent={CA} size="sm"/>
-            {curIncrOn&&<SliderRow label="Annual increment %" value={curIncrPct} onChange={setCurIncrPct} min={0} max={30} accent={CA}/>}
+            {curIncrOn&&<>
+              <SliderRow label="Annual increment %" value={curIncrPct} onChange={setCurIncrPct} min={0} max={50} accent={CA}/>
+              <div style={{marginBottom:12}}>
+                <LB>Increment applies from</LB>
+                <Pills opts={[{v:"y1",l:"Year 1 (offer already hiked)"},{v:"y2",l:"Year 2 onwards"}]} val={curIncrFrom} onChange={setCurIncrFrom} accent={CA}/>
+                <HT>{curIncrFrom==="y1"?"Your current base already reflects this year's increment.":"Year 1 = current base; increment kicks in from Year 2."}</HT>
+              </div>
+            </>}
             <TCPreview base={curBase} bonus={prevBonus} rsuY1={prevRsuY1} erPf={prevErPf} pfInBase={curPfInBase} showInhand={showInhand} basicPct={curEffBasic} pfCap={curPfCap}/>
           </div>
 
@@ -767,16 +818,17 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={newBase} onChange={setNewBase} placeholder="e.g. 11000000"/>
+            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{if(!hikeMode)setNewBase(v);}} placeholder={hikeMode?"Auto-filled from hike % ↑":"e.g. 15,00,000  (15L)"} accent={NA}/>
+            {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#64748B",marginTop:-10,marginBottom:10,fontFamily:"Courier New,monospace"}}>Auto: {fmtL(Math.round(tN(curBase)*(1+hikePct/100)))} · change hike % above to update</div>}
             <SliderRow label="Bonus % of Base" value={newBonusPct} onChange={setNewBonusPct} min={0} max={100} accent={NA}/>
-            <MoneyInput label="Or fixed bonus" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact/>
+            <MoneyInput label="Or fixed bonus amount" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={NA}/>
             <ST accent={NA}>Provident Fund</ST>
             <PfSection accent={NA} pfInBase={newPfInBase} onPfInBase={v=>setNewPfInBase(v===true||v==="true")}
               basicAuto={newBasicAuto} onBasicAuto={v=>setNewBasicAuto(v===true||v==="true")}
               basicPct={newBasicPct} onBasicPct={setNewBasicPct} pfCap={newPfCap} onPfCap={()=>setNewPfCap(!newPfCap)}/>
             <ST accent={NA}>One-time Bonuses</ST>
-            <MoneyInput label="Joining / Sign-on Bonus" value={newJoining} onChange={setNewJoining} placeholder="Optional — Year 1 only"/>
-            <MoneyInput label="Relocation Allowance" value={newRelocation} onChange={setNewRelocation} placeholder="Optional — Year 1 only" hint="One-time. Flagged in comparison as exceptional." compact/>
+            <MoneyInput label="Joining / Sign-on Bonus" value={newJoining} onChange={setNewJoining} placeholder="Optional — Year 1 only" accent={NA}/>
+            <MoneyInput label="Relocation Allowance" value={newRelocation} onChange={setNewRelocation} placeholder="Optional — Year 1 only" hint="One-time. Flagged as exceptional in comparison." compact accent={NA}/>
             {(tN(newJoining)>0||tN(newRelocation)>0)&&(
               <div style={{fontSize:11,color:WA,background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:8,padding:"7px 10px",marginTop:-6,marginBottom:10,lineHeight:1.4}}>
                 ⚡ One-time amounts total {fmtL((tN(newJoining)||0)+(tN(newRelocation)||0))} — applies to Year 1 only. Years 2–4 TC will be lower by this amount.
@@ -792,7 +844,14 @@ export default function OfferCompare(){
               custom={newRsuCustom} onCustom={setNewRsuCustom} currency={newRsuCur} onCurrency={setNewRsuCur} fx={newRsuFx} onFx={setNewRsuFx}/>
             <ST accent={NA}>Salary Growth</ST>
             <Toggle on={newIncrOn} onToggle={()=>setNewIncrOn(!newIncrOn)} label="Apply YoY increment" accent={NA} size="sm"/>
-            {newIncrOn&&<SliderRow label="Annual increment %" value={newIncrPct} onChange={setNewIncrPct} min={0} max={30} accent={NA}/>}
+            {newIncrOn&&<>
+              <SliderRow label="Annual increment %" value={newIncrPct} onChange={setNewIncrPct} min={0} max={50} accent={NA}/>
+              <div style={{marginBottom:12}}>
+                <LB>Increment applies from</LB>
+                <Pills opts={[{v:"y1",l:"Year 1 (offer is after hike)"},{v:"y2",l:"Year 2 onwards"}]} val={newIncrFrom} onChange={v=>!hikeMode&&setNewIncrFrom(v)} accent={NA}/>
+                <HT>{newIncrFrom==="y1"?"New offer base already includes this increment.":"Year 1 = offer base; increment applies Year 2+."}</HT>
+              </div>
+            </>}
             <NewTCPreview
               base={newBase} bonus={tN(newBonusManual)>0?tN(newBonusManual):tN(newBase)*newBonusPct/100}
               rsuY1={newRsuArr[0]} erPf={!newPfInBase?getPf(tN(newBase),newEffBasic,newPfCap):0}
@@ -819,24 +878,24 @@ export default function OfferCompare(){
           return(
             <>
               {/* HERO */}
-              <div style={{background:"#fff",borderRadius:14,padding:"16px 18px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>Year 1 — Total Compensation</div>
-                <div className="hero-grid" style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:10,alignItems:"center"}}>
+              <div style={{background:"linear-gradient(135deg,#1e3a8a 0%,#1e40af 50%,#065F46 100%)",borderRadius:16,padding:"20px 20px",boxShadow:"0 8px 32px rgba(30,64,175,.25)",marginBottom:14,color:"#fff"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:14}}>Year 1 Total Compensation</div>
+                <div className="hero-grid" style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"center"}}>
                   <div>
-                    <div style={{fontSize:10,fontWeight:700,color:CA,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:"Outfit,sans-serif",marginBottom:3}}>Current</div>
-                    <div style={{fontSize:22,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif",letterSpacing:"-0.5px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
-                    {showInhand&&<div style={{fontSize:11,color:"#64748B",marginTop:2}}>~{fmtL(y1.cur.inHand/12)}/mo</div>}
+                    <div style={{fontSize:11,fontWeight:700,color:"#93C5FD",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Current</div>
+                    <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(y1.cur.inHand/12)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                   <div style={{textAlign:"center"}}>
-                    <div style={{padding:"6px 12px",borderRadius:18,fontSize:12,fontWeight:800,background:y1.delta>=0?"#DCFCE7":"#FEE2E2",color:y1.delta>=0?"#15803D":"#DC2626",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"#86EFAC":"#FCA5A5"}`,whiteSpace:"nowrap"}}>
+                    <div style={{padding:"8px 14px",borderRadius:20,fontSize:13,fontWeight:900,background:y1.delta>=0?"rgba(52,211,153,.25)":"rgba(248,113,113,.25)",color:y1.delta>=0?"#6EE7B7":"#FCA5A5",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"rgba(52,211,153,.5)":"rgba(248,113,113,.5)"}`,whiteSpace:"nowrap",boxShadow:y1.delta>=0?"0 0 20px rgba(52,211,153,.2)":"0 0 20px rgba(248,113,113,.2)"}}>
                       {y1.delta>=0?"▲ +":"▼ "}{fmtL(Math.abs(y1.delta))}
                     </div>
-                    <div style={{fontSize:10,color:"#94A3B8",marginTop:3}}>{y1.delta>=0?"+":""}{Number(y1.deltaPct).toFixed(1)}% Y1</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:4}}>{y1.delta>=0?"+":""}{Number(y1.deltaPct).toFixed(1)}% vs current</div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:NA,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:"Outfit,sans-serif",marginBottom:3}}>New Offer</div>
-                    <div style={{fontSize:22,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif",letterSpacing:"-0.5px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
-                    {showInhand&&<div style={{fontSize:11,color:"#64748B",marginTop:2}}>~{fmtL(y1.new.inHand/12)}/mo</div>}
+                    <div style={{fontSize:11,fontWeight:700,color:"#6EE7B7",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>New Offer</div>
+                    <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(y1.new.inHand/12)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                 </div>
               </div>
@@ -861,46 +920,45 @@ export default function OfferCompare(){
                 ))}
               </div>
 
-              {/* CUMULATIVE */}
-              <div style={{background:"#fff",borderRadius:14,padding:"16px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12,fontFamily:"Outfit,sans-serif"}}>4-Year Cumulative Total Compensation</div>
-                <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                  {[{label:"Current",val:results.cumCur,color:CA,bg:"#EFF6FF",border:"#BFDBFE"},
-                    {label:"New Offer",val:results.cumNew,color:NA,bg:"#ECFDF5",border:"#A7F3D0"}].map(s=>(
-                    <div key={s.label} style={{background:s.bg,borderRadius:10,padding:12,border:`1.5px solid ${s.border}`}}>
-                      <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:"Outfit,sans-serif",marginBottom:4}}>{s.label}</div>
-                      <div style={{fontSize:18,fontWeight:800,color:s.color,fontFamily:"Sora,sans-serif",letterSpacing:"-0.5px"}}>{fmtL(s.val)}</div>
-                      <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Avg {fmtL(s.val/4)}/yr</div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748B",marginBottom:5}}>
-                    <span>4-Year difference</span>
-                    <span style={{fontWeight:700,color:pos?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{pos?"+":""}{fmtL(results.cumDelta)}</span>
-                  </div>
-                  <div style={{height:9,borderRadius:5,background:"#E2E8F0",overflow:"hidden",display:"flex"}}>
-                    <div style={{width:`${(results.cumCur/Math.max(results.cumCur,results.cumNew)*100).toFixed(1)}%`,background:CA,transition:"width .5s"}}/>
-                    <div style={{flex:1,background:NA,opacity:.7}}/>
-                  </div>
-                </div>
-              </div>
-
-              {/* BREAKEVEN */}
+              {/* VERDICT (replaces cumulative + breakeven) */}
               {(()=>{
                 const be=results.breakEvenYear;
-                const[bg,bdr,icon,tc,bc,title,body]=!be
-                  ?["#FFF7ED","#FED7AA","⚠️","#C2410C","#78350F","Current package stays ahead all 4 years","New offer never surpasses current in cumulative TC. Consider negotiating base, joining, or RSU."]
+                const cumPos=results.cumDelta>=0;
+                const[bg,bdrGrad,icon,tc,bc,title,body]=!be
+                  ?["linear-gradient(135deg,#FFF7ED,#FEF3C7)","linear-gradient(135deg,#F97316,#F59E0B)","⚠️","#C2410C","#78350F",
+                    "Current package stays ahead all 4 years",
+                    `New offer never surpasses current in cumulative TC over 4 years. 4-yr gap: ${fmtL(Math.abs(results.cumDelta))} in favour of current. Consider negotiating base, joining bonus, or RSU grant.`]
                   :be===1
-                  ?["#F0FDF4","#86EFAC","🚀","#15803D","#166534","New offer is better from Day 1!",`You come out ${fmtL(Math.abs(results.cumDelta))} ahead over 4 years. The switch makes clear financial sense.`]
-                  :["#FFFBEB","#FDE68A","📅","#B45309","#78350F",`New offer breaks even from Year ${be}`,`Short-term dip in Years 1–${be-1}. Over 4 years you're ${fmtL(Math.abs(results.cumDelta))} ${results.cumDelta>=0?"ahead":"behind"}. Factor in role growth and career trajectory.`];
+                  ?["linear-gradient(135deg,#F0FDF4,#DCFCE7)","linear-gradient(135deg,#10B981,#34D399)","🚀","#065F46","#166534",
+                    "New offer is better from Day 1!",
+                    `You gain ${fmtL(Math.abs(results.cumDelta))} more over 4 years. The switch makes clear financial sense — financially you're ahead from the very first year.`]
+                  :["linear-gradient(135deg,#FFFBEB,#FEF3C7)","linear-gradient(135deg,#F59E0B,#FCD34D)","📅","#92400E","#78350F",
+                    `New offer breaks even from Year ${be}`,
+                    `Slight dip in Year${be>2?"s":""} 1${be>2?`–${be-1}:""}. 4-year net: ${fmtL(Math.abs(results.cumDelta))} ${cumPos?"ahead — worth the switch":"behind — negotiate harder"}.`];
                 return(
-                  <div style={{background:bg,border:`2px solid ${bdr}`,borderRadius:14,padding:14,marginBottom:14}}>
-                    <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <span style={{fontSize:20,flexShrink:0}}>{icon}</span>
-                      <div>
-                        <div style={{fontWeight:800,color:tc,fontFamily:"Sora,sans-serif",marginBottom:3,fontSize:13}}>{title}</div>
-                        <div style={{fontSize:12,color:bc,lineHeight:1.4}}>{body}</div>
+                  <div style={{background:bg,border:"2px solid transparent",backgroundClip:"padding-box",borderRadius:16,padding:0,marginBottom:14,position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",inset:0,background:bdrGrad,zIndex:0,borderRadius:16}}/>
+                    <div style={{position:"relative",zIndex:1,background:bg,margin:"2px",borderRadius:14,padding:"18px 20px"}}>
+                      <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                        <span style={{fontSize:32,flexShrink:0,lineHeight:1}}>{icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:900,color:tc,fontFamily:"Sora,sans-serif",marginBottom:6,fontSize:18,letterSpacing:"-0.4px",lineHeight:1.2}}>{title}</div>
+                          <div style={{fontSize:13,color:bc,lineHeight:1.6}}>{body}</div>
+                          <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+                            <div style={{padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.08)"}}>
+                              <div style={{fontSize:10,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>4-Year Net</div>
+                              <div style={{fontSize:16,fontWeight:800,color:cumPos?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{cumPos?"+":"-"}{fmtL(Math.abs(results.cumDelta))}</div>
+                            </div>
+                            <div style={{padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.08)"}}>
+                              <div style={{fontSize:10,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Avg/Year Diff</div>
+                              <div style={{fontSize:16,fontWeight:800,color:cumPos?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{cumPos?"+":"-"}{fmtL(Math.abs(results.cumDelta/4))}</div>
+                            </div>
+                            <div style={{padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.08)"}}>
+                              <div style={{fontSize:10,color:"#64748B",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Monthly Delta (Y1)</div>
+                              <div style={{fontSize:16,fontWeight:800,color:results.years[0].delta>=0?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{results.years[0].delta>=0?"+":"-"}{fmtL(Math.abs(results.years[0].delta/12))}</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -918,25 +976,44 @@ export default function OfferCompare(){
                 </div>
               )}
 
-              {/* IN-HAND */}
-              {showInhand&&(
-                <div style={{background:"#fff",borderRadius:14,padding:"14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",marginBottom:14}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>Year 1 Monthly In-hand Estimate</div>
-                  <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    {[{label:"Current",ih:y1.cur.inHand,color:CA,bg:"#EFF6FF"},{label:"New Offer",ih:y1.new.inHand,color:NA,bg:"#ECFDF5"}].map(s=>(
-                      <div key={s.label} style={{background:s.bg,borderRadius:10,padding:12,border:`1px solid ${s.color}33`}}>
-                        <div style={{fontSize:10,color:s.color,fontWeight:700,textTransform:"uppercase",fontFamily:"Outfit,sans-serif",marginBottom:3}}>{s.label}</div>
-                        <div style={{fontSize:17,fontWeight:800,color:s.color,fontFamily:"Sora,sans-serif"}}>{fmtL(s.ih/12)}<span style={{fontSize:10,fontWeight:400}}>/mo</span></div>
-                        <div style={{fontSize:11,color:"#64748B",marginTop:1}}>Annual: {fmtL(s.ih)}</div>
+              {/* IN-HAND — always shown at bottom */}
+              <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,boxShadow:"0 4px 24px rgba(99,102,241,.12)"}}>
+                <div style={{background:"linear-gradient(135deg,#4F46E5,#7C3AED)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.7)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Monthly In-Hand Estimate (Year 1)</div>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>New Tax Regime · Standard deduction applied</div>
+                  </div>
+                  <a href="/finance-tools/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
+                    Detailed Calculator →
+                  </a>
+                </div>
+                <div style={{background:"#fff",padding:"16px 18px"}}>
+                  <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                    {[{label:"Current",ih:y1.cur.inHand,color:CA,grad:"linear-gradient(135deg,#1D4ED8,#3B82F6)"},{label:"New Offer",ih:y1.new.inHand,color:NA,grad:"linear-gradient(135deg,#059669,#34D399)"}].map(s=>(
+                      <div key={s.label} style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
+                        <div style={{background:s.grad,padding:"8px 14px"}}>
+                          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
+                        </div>
+                        <div style={{padding:"12px 14px",background:`${s.color}06`}}>
+                          <div style={{fontSize:24,fontWeight:900,color:s.color,fontFamily:"Sora,sans-serif",letterSpacing:"-0.5px",lineHeight:1}}>{fmtL(s.ih/12)}<span style={{fontSize:12,fontWeight:500,color:"#64748B"}}>/mo</span></div>
+                          <div style={{fontSize:12,color:"#64748B",marginTop:4}}>Annual in-hand: <strong style={{color:"#334155"}}>{fmtL(s.ih)}</strong></div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{marginTop:8,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:4}}>
-                    <span style={{fontSize:10,color:"#94A3B8"}}>⚠ Estimate — varies by HRA, actual deductions</span>
-                    <a href="/new-regime-salary-calculator" style={{color:PU,fontWeight:600,textDecoration:"none",fontFamily:"Outfit,sans-serif",fontSize:11}}>Exact in-hand →</a>
+                  <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                    <div>
+                      <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Monthly gain in hand</div>
+                      <div style={{fontSize:18,fontWeight:800,color:y1.new.inHand>y1.cur.inHand?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>
+                        {y1.new.inHand>=y1.cur.inHand?"+":"-"}{fmtL(Math.abs(y1.new.inHand-y1.cur.inHand)/12)}
+                      </div>
+                    </div>
+                    <div style={{fontSize:10,color:"#94A3B8",maxWidth:200,textAlign:"right",lineHeight:1.4}}>
+                      ⚠ Estimate — actual varies by HRA exemption, deductions, employer benefits
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </>
           );
         })()}
