@@ -43,6 +43,10 @@ function fmtD(val){
   if(v>=1000)return`${s}₹${(v/1000).toFixed(1)}k`;
   return`${s}₹${Math.round(v)}`;
 }
+function fmtINR(val){
+  if(!val&&val!==0)return"—";
+  return`₹${Math.round(Math.abs(val)).toLocaleString("en-IN")}`;
+}
 
 // Returns full breakdown — pfInBase=true means quoted base includes ER PF
 function calcInHand(base,bonus,bPct,pfCap,pfInBase){
@@ -543,14 +547,14 @@ function YearAccordion({yd,showPf,hasJoining,hasRelocation,hasRsu,hasRetention,l
       {expanded&&(
         <div style={{background:"#fff"}}>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,minWidth:460}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,minWidth:360}}>
               <thead>
                 <tr style={{background:"#F8FAFF",borderBottom:"2px solid #EEF2FF"}}>
-                  <th style={{...TH("left","#64748B"),minWidth:150}}>Layer</th>
-                  <th style={{...TH("right",CA),minWidth:80}}>Current</th>
-                  <th style={{...TH("right",NA),minWidth:80}}>New Offer</th>
-                  <th style={{...TH("right","#475569"),minWidth:72}}>Δ Amt</th>
-                  <th style={{...TH("left","#475569"),minWidth:100,paddingLeft:6}}>Δ %</th>
+                  <th style={{...TH("left","#64748B"),minWidth:110}}>Layer</th>
+                  <th style={{...TH("right",CA),minWidth:70}}>Current</th>
+                  <th style={{...TH("right",NA),minWidth:70}}>New Offer</th>
+                  <th style={{...TH("right","#475569"),minWidth:60}}>Δ Amt</th>
+                  <th style={{...TH("left","#475569"),minWidth:55,paddingLeft:6}}>Δ %</th>
                 </tr>
               </thead>
               <tbody>
@@ -967,7 +971,7 @@ export default function OfferCompare(){
                   <div>
                     <div style={{fontSize:11,fontWeight:700,color:"#93C5FD",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Current</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.cur.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>≈{fmtINR(calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap,curPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                   <div style={{textAlign:"center"}}>
                     <div style={{padding:"8px 14px",borderRadius:20,fontSize:13,fontWeight:900,background:y1.delta>=0?"rgba(52,211,153,.25)":"rgba(248,113,113,.25)",color:y1.delta>=0?"#6EE7B7":"#FCA5A5",fontFamily:"Courier New,monospace",border:`2px solid ${y1.delta>=0?"rgba(52,211,153,.5)":"rgba(248,113,113,.5)"}`,whiteSpace:"nowrap",boxShadow:y1.delta>=0?"0 0 20px rgba(52,211,153,.2)":"0 0 20px rgba(248,113,113,.2)"}}>
@@ -978,7 +982,7 @@ export default function OfferCompare(){
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:11,fontWeight:700,color:"#6EE7B7",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>New Offer</div>
                     <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.6px",lineHeight:1}}>{fmtL(y1.new.tc)}</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>~{fmtL(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.65)",marginTop:4}}>≈{fmtINR(calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap,newPfInBase).regularMonthly)}<span style={{fontSize:10}}>/mo in-hand</span></div>
                   </div>
                 </div>
               </div>
@@ -1085,9 +1089,10 @@ export default function OfferCompare(){
                       <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
                         {sides.map(s=>(
                           <div key={s.label} style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
-                            <div style={{background:s.grad,padding:"9px 14px"}}>
-                              <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
-                              <div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.4px",marginTop:2}}>{fmtL(s.d.inHand/12)}<span style={{fontSize:11,fontWeight:400,opacity:.8}}>/mo</span></div>
+                            <div style={{background:s.grad,padding:"11px 14px"}}>
+                              <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
+                              <div style={{fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.4px",marginTop:2,lineHeight:1.1}}>≈{fmtINR(s.d.inHand/12)}<span style={{fontSize:10,fontWeight:400,opacity:.8}}>/mo</span></div>
+                              <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>{fmtL(s.d.inHand/12)} · approx</div>
                             </div>
                             <div style={{padding:"10px 14px",background:`${s.color}06`}}>
                               {[
@@ -1111,12 +1116,12 @@ export default function OfferCompare(){
                                 <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Monthly Take-home</div>
                                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.d.bonusMonthNet!==s.d.regularMonthly?4:0}}>
                                   <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>{s.d.bonusMonthNet!==s.d.regularMonthly?"Regular months (11)":"Monthly (all 12)"}</span>
-                                  <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.regularMonthly)}</span>
+                                  <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>≈{fmtINR(s.d.regularMonthly)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.regularMonthly)}</span></span>
                                 </div>
                                 {s.d.bonusMonthNet!==s.d.regularMonthly&&(
                                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                                     <span style={{fontSize:11,color:"#64748B",fontFamily:"Outfit,sans-serif"}}>Bonus month <span style={{fontSize:10,color:"#94A3B8"}}>(incl. bonus − extra TDS)</span></span>
-                                    <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.bonusMonthNet)}</span>
+                                    <span style={{fontSize:14,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>≈{fmtINR(s.d.bonusMonthNet)}<span style={{fontSize:9,fontWeight:400,opacity:.65,marginLeft:3}}>{fmtL(s.d.bonusMonthNet)}</span></span>
                                   </div>
                                 )}
                               </div>
@@ -1151,7 +1156,7 @@ export default function OfferCompare(){
           .hero-grid>div:nth-child(2){order:-1;}
           .two-col{grid-template-columns:1fr 1fr!important;}
         }
-        @media(max-width:380px){
+        @media(max-width:480px){
           .two-col{grid-template-columns:1fr!important;}
         }
         input[type=range]{height:4px;border-radius:2px;}
