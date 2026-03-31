@@ -932,7 +932,7 @@ export default function OfferCompare(){
                     `You gain ${fmtL(Math.abs(results.cumDelta))} more over 4 years. The switch makes clear financial sense — financially you're ahead from the very first year.`]
                   :["linear-gradient(135deg,#FFFBEB,#FEF3C7)","linear-gradient(135deg,#F59E0B,#FCD34D)","📅","#92400E","#78350F",
                     `New offer breaks even from Year ${be}`,
-                    `Slight dip in Year${be>2?"s":""} 1${be>2?`–${be-1}:""}. 4-year net: ${fmtL(Math.abs(results.cumDelta))} ${cumPos?"ahead — worth the switch":"behind — negotiate harder"}.`];
+                    `Slight dip in Year${be>2?"s":""} 1${be>2?"–"+(be-1):""}. 4-year net: ${fmtL(Math.abs(results.cumDelta))} ${cumPos?"ahead — worth the switch":"behind — negotiate harder"}.`];
                 return(
                   <div style={{background:bg,border:"2px solid transparent",backgroundClip:"padding-box",borderRadius:16,padding:0,marginBottom:14,position:"relative",overflow:"hidden"}}>
                     <div style={{position:"absolute",inset:0,background:bdrGrad,zIndex:0,borderRadius:16}}/>
