@@ -819,7 +819,11 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>Current Offer</div>
             </div>
             <ST accent={CA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={curBase} onChange={v=>{setCurBase(v);if(curBonusPct>0&&tN(v)>0)setCurBonusManual(String(Math.round(tN(v)*curBonusPct/100)));}} placeholder="e.g. 1000000" accent={CA}/>
+            <MoneyInput label="Annual Base Salary" value={curBase} onChange={v=>{
+              setCurBase(v);
+              if(curBonusPct>0&&tN(v)>0)setCurBonusManual(String(Math.round(tN(v)*curBonusPct/100)));
+              if(hikeMode&&tN(v)>0)setNewBase(String(Math.round(tN(v)*(1+hikePct/100))));
+            }} placeholder="e.g. 1000000" accent={CA}/>
             <SliderRow label="Bonus % of Base" value={curBonusPct}
               onChange={v=>{setCurBonusPct(v);if(tN(curBase)>0){setCurBonusManual(String(Math.round(tN(curBase)*v/100)));setCurBonusManualOn(true);}}}
               min={0} max={100} accent={CA}
@@ -855,7 +859,10 @@ export default function OfferCompare(){
           <div style={{background:"#ECFDF5",borderRadius:14,padding:16,border:"2px solid #A7F3D0",boxShadow:"0 2px 8px rgba(5,150,105,.07)"}}>
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:NA,flexShrink:0}}/>
-              <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>{hikeMode?"Hike / New Offer":"New Offer / Hike"}</div>
+                {hikeMode&&<span style={{fontSize:10,fontWeight:700,background:"#EDE9FE",color:"#6D28D9",borderRadius:10,padding:"2px 8px"}}>📈 Hike Mode</span>}
+              </div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
             <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{onNewBaseManual(v);if(newBonusPct>0&&tN(v)>0)setNewBonusManual(String(Math.round(tN(v)*newBonusPct/100)));}} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
@@ -882,7 +889,19 @@ export default function OfferCompare(){
             )}
             <ST accent={NA}>Retention Bonus</ST>
             <RetentionSection accent={NA} on={newRetentionOn} onToggle={()=>setNewRetentionOn(!newRetentionOn)} list={newRetentionList} onList={setNewRetentionList}/>
-            <ST accent={NA}>RSU / LTI Grant</ST>
+            <ST accent={NA}>RSU / LTI (Current → New)</ST>
+            {curRsuOn&&(
+              <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"8px 12px",marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:700,color:CA,marginBottom:4,fontFamily:"Outfit,sans-serif"}}>Current RSU vesting (reference)</div>
+                <div style={{display:"flex",gap:4}}>
+                  {curRsuArr.map((v,i)=>(
+                    <div key={i} style={{flex:1,textAlign:"center",padding:"4px 2px",borderRadius:5,background:v>0?"#DBEAFE":"#F1F5F9",fontSize:10,fontWeight:700,color:v>0?CA:"#94A3B8",fontFamily:"Courier New,monospace"}}>
+                      Y{i+1}<br/>{v>0?fmtL(v):"—"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <RsuPanel accent={NA} on={newRsuOn} onToggle={()=>setNewRsuOn(!newRsuOn)}
               mode="detailed" onMode={null} ltiType={newRsuLti} onLtiType={setNewRsuLti}
               annual="" onAnnual={()=>{}} grant={newRsuGrant} onGrant={setNewRsuGrant}
@@ -1027,9 +1046,11 @@ export default function OfferCompare(){
                 const curIH=calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap);
                 const newIH=calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap);
                 const gain=newIH.inHand-curIH.inHand;
+                const curErPfY1=!curPfInBase?getPf(y1.cur.base,curEffBasic,curPfCap):0;
+                const newErPfY1=!newPfInBase?getPf(y1.new.base,newEffBasic,newPfCap):0;
                 const sides=[
-                  {label:"Current",d:curIH,color:CA,grad:"linear-gradient(135deg,#1D4ED8,#3B82F6)"},
-                  {label:"New Offer",d:newIH,color:NA,grad:"linear-gradient(135deg,#059669,#34D399)"},
+                  {label:"Current",d:curIH,erPf:curErPfY1,color:CA,grad:"linear-gradient(135deg,#1D4ED8,#3B82F6)"},
+                  {label:"New Offer",d:newIH,erPf:newErPfY1,color:NA,grad:"linear-gradient(135deg,#059669,#34D399)"},
                 ];
                 return(
                   <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,boxShadow:"0 4px 24px rgba(99,102,241,.12)"}}>
@@ -1038,8 +1059,8 @@ export default function OfferCompare(){
                         <div style={{fontSize:13,fontWeight:800,color:"#fff",fontFamily:"Sora,sans-serif"}}>💰 In-Hand Breakdown (Year 1)</div>
                         <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>New Tax Regime · Std deduction ₹75,000 · EE PF deducted · ER PF excluded (employer cost)</div>
                       </div>
-                      <Link to="/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
-                        Full Calculator →
+                      <Link to="/new-regime-salary-calculator" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
+                        Full Calculator ↗
                       </Link>
                     </div>
                     <div style={{background:"#fff",padding:"16px 18px"}}>
@@ -1062,6 +1083,12 @@ export default function OfferCompare(){
                                   <span style={{fontSize:12,fontWeight:l.startsWith("=")?800:600,color:c,fontFamily:"Courier New,monospace"}}>{fmtL(Math.abs(v))}</span>
                                 </div>
                               ))}
+                              {s.erPf>0&&(
+                                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #F1F5F9"}}>
+                                  <span style={{fontSize:10,color:"#94A3B8",fontFamily:"Outfit,sans-serif"}}>ER PF <span style={{fontSize:9}}>(→ PF a/c, not from gross)</span></span>
+                                  <span style={{fontSize:11,color:"#94A3B8",fontFamily:"Courier New,monospace"}}>{fmtL(s.erPf)}</span>
+                                </div>
+                              )}
                               <div style={{marginTop:8,padding:"8px 10px",background:`${s.color}0D`,borderRadius:8,border:`1px solid ${s.color}30`}}>
                                 <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Monthly Take-home</div>
                                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:s.d.bonusMonthNet!==s.d.regularMonthly?4:0}}>
