@@ -3,18 +3,21 @@ import { useState, useMemo } from "react";
 /* ═══════════════════════════════════════════
    TAX ENGINE — New Regime FY 2026-27
 ═══════════════════════════════════════════*/
-function slabTax(ti) {
-  const s = [[400000,0],[400000,.05],[400000,.10],[400000,.15],[400000,.20],[Infinity,.30]];
-  let tax=0,rem=ti;
-  for(const [lim,rate] of s){if(rem<=0)break;const c=Math.min(rem,lim);tax+=c*rate;rem-=c;}
-  return tax;
+function slabTax(ti){
+  if(ti<=0)return 0;
+  const s=[[400000,0],[800000,.05],[1200000,.10],[1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]];
+  let t=0,p=0;for(const[l,r]of s){if(ti<=p)break;t+=(Math.min(ti,l)-p)*r;p=l;}
+  return ti<=1200000?0:t;
 }
-function srRate(ti){
-  if(ti<=5e6)return 0;if(ti<=1e7)return.10;if(ti<=2e7)return.15;if(ti<=5e7)return.25;return.37;
-}
+function srRate(ti){return ti>10000000?.15:ti>5000000?.10:0;}
 function calcTax(ti){
-  if(ti<=0)return 0;if(ti<=1275000)return 0;
-  const b=slabTax(ti);return(b+b*srRate(ti))*1.04;
+  if(ti<=0)return 0;
+  const base=slabTax(ti),sr=srRate(ti);
+  const noR=Math.round(base*(1+sr)*1.04);
+  if(sr===0)return noR;
+  const thrs=[5000000,10000000,20000000,50000000];
+  let thr=0;for(const t of thrs){if(ti>t)thr=t;}
+  return Math.min(noR,calcTax(thr)+(ti-thr));
 }
 
 /* ═══════════════════════════════════════════
@@ -576,6 +579,26 @@ export default function OfferCompare(){
   const[showInhand,setShowInhand]=useState(false);
   const[expandYear,setExpandYear]=useState(1);
 
+  // ── Increment / Hike quick-fill
+  const[hikeMode,setHikeMode]=useState(false);
+  const[hikePct,setHikePct]=useState(30);
+
+  // Auto-fill new base when hike mode is active
+  const applyHike=()=>{
+    const b=tN(curBase);
+    if(!b)return;
+    const nb=Math.round(b*(1+hikePct/100));
+    setNewBase(String(nb));
+    setNewBonusPct(curBonusPct);
+    setNewBonusManual(curBonusManual);
+    setNewPfInBase(curPfInBase);
+    setNewBasicAuto(curBasicAuto);
+    setNewBasicPct(curBasicPct);
+    setNewPfCap(curPfCap);
+    setNewIncrOn(curIncrOn);
+    setNewIncrPct(curIncrPct);
+  };
+
   const curEffBasic=curBasicAuto?50:curBasicPct;
   const newEffBasic=newBasicAuto?50:newBasicPct;
 
@@ -669,6 +692,43 @@ export default function OfferCompare(){
         <div style={{background:"#fff",borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",gap:16,flexWrap:"wrap",border:"1.5px solid #E2E8F0",alignItems:"center"}}>
           <span style={{fontSize:10,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.06em",flexShrink:0}}>Options:</span>
           <Toggle on={showInhand} onToggle={()=>setShowInhand(!showInhand)} label="Show in-hand estimate" accent={PU} size="sm"/>
+        </div>
+
+        {/* HIKE / INCREMENT QUICK-FILL BANNER */}
+        <div style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:14,border:"1.5px solid #E2E8F0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:hikeMode?12:0,cursor:"pointer",userSelect:"none"}} onClick={()=>setHikeMode(!hikeMode)}>
+            <span style={{fontSize:16}}>📈</span>
+            <span style={{fontSize:13,fontWeight:700,color:"#334155",flex:1}}>Evaluating an increment / hike offer?</span>
+            <span style={{fontSize:11,fontWeight:600,color:PU,background:"#EDE9FE",padding:"3px 10px",borderRadius:10,cursor:"pointer",flexShrink:0}}>{hikeMode?"Hide ▲":"Quick Fill ▼"}</span>
+          </div>
+          {hikeMode&&(
+            <div style={{padding:"12px 0 0"}}>
+              <div style={{fontSize:12,color:"#64748B",marginBottom:10,lineHeight:1.4}}>Enter your current salary in the <strong>Current</strong> panel, set the expected hike %, and click <strong>Apply</strong> — the New Offer side fills automatically.</div>
+              <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:200}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <label style={{fontSize:12,fontWeight:600,color:"#475569"}}>Expected Hike %</label>
+                    <span style={{fontSize:14,fontWeight:800,color:PU,fontFamily:"Courier New,monospace"}}>{hikePct}%</span>
+                  </div>
+                  <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>setHikePct(Number(e.target.value))} style={{width:"100%",accentColor:PU,cursor:"pointer"}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94A3B8",marginTop:2}}>
+                    <span>1%</span><span>50%</span><span>100%</span><span>150%</span>
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                  {tN(curBase)>0&&(
+                    <div style={{fontSize:11,color:"#64748B",fontFamily:"Courier New,monospace"}}>
+                      {fmtL(tN(curBase))} → <strong style={{color:NA}}>{fmtL(Math.round(tN(curBase)*(1+hikePct/100)))}</strong>
+                    </div>
+                  )}
+                  <button onClick={applyHike} disabled={!tN(curBase)} style={{padding:"9px 20px",borderRadius:10,border:"none",background:tN(curBase)?PU:"#E2E8F0",color:tN(curBase)?"#fff":"#94A3B8",fontSize:13,fontWeight:700,cursor:tN(curBase)?"pointer":"not-allowed",fontFamily:"Outfit,sans-serif"}}>
+                    ↗ Apply to New Offer
+                  </button>
+                  {!tN(curBase)&&<div style={{fontSize:10,color:"#94A3B8",textAlign:"center"}}>Enter current salary first</div>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* INPUT GRID */}

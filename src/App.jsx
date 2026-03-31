@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import NewRegimeSalaryCalc from "./tools/NewRegimeSalaryCalc";
+import OfferCompare from "./tools/OfferCompare";
 
 const TOOLS = [
   { path: "new-regime-salary-calculator", label: "New Regime Salary Calculator", desc: "In-hand salary with new tax regime" },
+  { path: "offer-comparison-calculator",  label: "Offer Comparison Calculator",  desc: "Compare two offers or evaluate a hike — 4-year TC, RSU, in-hand" },
   // { path: "sip-calculator",    label: "SIP Calculator",    desc: "Mutual fund SIP returns" },
   // { path: "emi-calculator",    label: "EMI Calculator",    desc: "Loan EMI & prepayment" },
 ];
@@ -14,6 +16,7 @@ const SITE = "FinanceWisdom4U";
 const PAGE_TITLES = {
   "/": `Finance Tools – ${SITE}`,
   "/new-regime-salary-calculator": `New Regime Salary Calculator FY 2026-27 – ${SITE}`,
+  "/offer-comparison-calculator":  `Offer Comparison Calculator – Compare Offers & Hike – ${SITE}`,
 };
 
 /* ─── Google Analytics Route Tracker ───────────────────────────
@@ -66,7 +69,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/new-regime-salary-calculator" element={<NewRegimeSalaryCalc />} />
-        {/* Add new tool routes here */}
+        <Route path="/offer-comparison-calculator"  element={<OfferCompare />} />
       </Routes>
     </BrowserRouter>
   );
