@@ -42,18 +42,23 @@ function fmtD(val){
   return`${s}₹${Math.round(v)}`;
 }
 
+// Returns full breakdown — same logic as NewRegimeSalaryCalc
+function calcInHand(base,bonus,bPct,pfCap){
+  const basicA=base*(bPct||50)/100;
+  const pfWageA=pfCap?Math.min(basicA/12,15000)*12:basicA;
+  const eeA=Math.round(pfWageA*.12);         // Employee PF
+  const erA=eeA;                              // Employer PF (same rate)
+  const gross=base+bonus;
+  const taxable=Math.max(0,gross-75000);      // New regime: std deduction only
+  const taxA=calcTax(taxable);
+  const inHand=Math.round(gross-taxA-eeA);
+  return{gross,eeA,erA,taxA,inHand,taxable};
+}
 function getPf(base,bPct,pfCap){
-  const basicA=base*bPct/100,w=pfCap?Math.min(basicA/12,15000):basicA/12;return w*.12*12;
+  const{erA}=calcInHand(base,0,bPct,pfCap);return erA;
 }
 function getInHand(base,bonus,bPct,pfCap){
-  // EE PF = 12% of basic (basic = bPct% of base, capped at ₹15k/mo if pfCap)
-  const basicA=base*bPct/100;
-  const pfWage=pfCap?Math.min(basicA/12,15000)*12:basicA;
-  const eePf=pfWage*.12;
-  // New regime: only standard deduction ₹75,000; no 80C/PF deduction
-  const taxable=Math.max(0,base+bonus-75000);
-  const tax=calcTax(taxable);
-  return Math.round(base+bonus-tax-eePf);
+  return calcInHand(base,bonus,bPct,pfCap).inHand;
 }
 function getRetentionForYear(list,year){
   return(list||[]).filter(r=>r.year===year).reduce((s,r)=>s+tN(r.amount),0);
@@ -991,44 +996,68 @@ export default function OfferCompare(){
                 </div>
               )}
 
-              {/* IN-HAND — always shown at bottom */}
-              <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,boxShadow:"0 4px 24px rgba(99,102,241,.12)"}}>
-                <div style={{background:"linear-gradient(135deg,#4F46E5,#7C3AED)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.7)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Monthly In-Hand Estimate (Year 1)</div>
-                    <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>New Tax Regime · Standard deduction applied</div>
-                  </div>
-                  <a href="/finance-tools/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
-                    Detailed Calculator →
-                  </a>
-                </div>
-                <div style={{background:"#fff",padding:"16px 18px"}}>
-                  <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-                    {[{label:"Current",ih:y1.cur.inHand,color:CA,grad:"linear-gradient(135deg,#1D4ED8,#3B82F6)"},{label:"New Offer",ih:y1.new.inHand,color:NA,grad:"linear-gradient(135deg,#059669,#34D399)"}].map(s=>(
-                      <div key={s.label} style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
-                        <div style={{background:s.grad,padding:"8px 14px"}}>
-                          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
+              {/* IN-HAND — salary-calc style breakdown */}
+              {(()=>{
+                const curIH=calcInHand(y1.cur.base,y1.cur.bonus,curEffBasic,curPfCap);
+                const newIH=calcInHand(y1.new.base,y1.new.bonus,newEffBasic,newPfCap);
+                const gain=newIH.inHand-curIH.inHand;
+                const sides=[
+                  {label:"Current",d:curIH,color:CA,grad:"linear-gradient(135deg,#1D4ED8,#3B82F6)"},
+                  {label:"New Offer",d:newIH,color:NA,grad:"linear-gradient(135deg,#059669,#34D399)"},
+                ];
+                return(
+                  <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,boxShadow:"0 4px 24px rgba(99,102,241,.12)"}}>
+                    <div style={{background:"linear-gradient(135deg,#4F46E5,#7C3AED)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:800,color:"#fff",fontFamily:"Sora,sans-serif"}}>💰 In-Hand Breakdown (Year 1)</div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>New Tax Regime · Std deduction ₹75,000 · EE PF deducted</div>
+                      </div>
+                      <a href="/finance-tools/new-regime-salary-calculator" style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 14px",borderRadius:10,background:"rgba(255,255,255,.15)",color:"#E0E7FF",fontSize:12,fontWeight:700,textDecoration:"none",border:"1px solid rgba(255,255,255,.2)"}}>
+                        Full Calculator →
+                      </a>
+                    </div>
+                    <div style={{background:"#fff",padding:"16px 18px"}}>
+                      <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+                        {sides.map(s=>(
+                          <div key={s.label} style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.06)"}}>
+                            <div style={{background:s.grad,padding:"9px 14px"}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.8)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.label}</div>
+                              <div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Sora,sans-serif",letterSpacing:"-0.4px",marginTop:2}}>{fmtL(s.d.inHand/12)}<span style={{fontSize:11,fontWeight:400,opacity:.8}}>/mo</span></div>
+                            </div>
+                            <div style={{padding:"10px 14px",background:`${s.color}06`}}>
+                              {[
+                                ["Annual Gross",    s.d.gross,   "#334155"],
+                                ["− EE PF",        -s.d.eeA,    "#1D4ED8"],
+                                ["− Income Tax",   -s.d.taxA,   "#DC2626"],
+                                ["= Annual In-Hand",s.d.inHand, s.color],
+                              ].map(([l,v,c])=>(
+                                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:l.startsWith("=")?`2px solid ${s.color}30`:"1px solid #F1F5F9"}}>
+                                  <span style={{fontSize:11,color:l.startsWith("=")?s.color:"#64748B",fontWeight:l.startsWith("=")?700:400,fontFamily:"Outfit,sans-serif"}}>{l}</span>
+                                  <span style={{fontSize:12,fontWeight:l.startsWith("=")?800:600,color:c,fontFamily:"Courier New,monospace"}}>{fmtL(Math.abs(v))}</span>
+                                </div>
+                              ))}
+                              <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+                                <span style={{fontSize:11,color:"#94A3B8"}}>Monthly take-home</span>
+                                <span style={{fontSize:13,fontWeight:800,color:s.color,fontFamily:"Courier New,monospace"}}>{fmtL(s.d.inHand/12)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                        <div>
+                          <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Monthly gain in hand</div>
+                          <div style={{fontSize:22,fontWeight:900,color:gain>=0?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>{gain>=0?"+":"-"}{fmtL(Math.abs(gain)/12)}</div>
+                          <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Annual: {gain>=0?"+":"-"}{fmtL(Math.abs(gain))}</div>
                         </div>
-                        <div style={{padding:"12px 14px",background:`${s.color}06`}}>
-                          <div style={{fontSize:24,fontWeight:900,color:s.color,fontFamily:"Sora,sans-serif",letterSpacing:"-0.5px",lineHeight:1}}>{fmtL(s.ih/12)}<span style={{fontSize:12,fontWeight:500,color:"#64748B"}}>/mo</span></div>
-                          <div style={{fontSize:12,color:"#64748B",marginTop:4}}>Annual in-hand: <strong style={{color:"#334155"}}>{fmtL(s.ih)}</strong></div>
+                        <div style={{fontSize:10,color:"#94A3B8",maxWidth:180,textAlign:"right",lineHeight:1.5}}>
+                          ⚠ Excludes HRA, PT, NPS &amp; custom deductions.<br/>Use Full Calculator for exact payslip.
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                    <div>
-                      <div style={{fontSize:10,color:"#6366F1",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>Monthly gain in hand</div>
-                      <div style={{fontSize:18,fontWeight:800,color:y1.new.inHand>y1.cur.inHand?NA:"#DC2626",fontFamily:"Courier New,monospace"}}>
-                        {y1.new.inHand>=y1.cur.inHand?"+":"-"}{fmtL(Math.abs(y1.new.inHand-y1.cur.inHand)/12)}
-                      </div>
-                    </div>
-                    <div style={{fontSize:10,color:"#94A3B8",maxWidth:200,textAlign:"right",lineHeight:1.4}}>
-                      ⚠ Estimate — actual varies by HRA exemption, deductions, employer benefits
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </>
           );
         })()}
