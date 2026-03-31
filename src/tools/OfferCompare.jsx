@@ -804,18 +804,20 @@ export default function OfferCompare(){
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <input type="range" min={0} max={100} step={1} value={Math.min(hikePct,100)} onChange={e=>onHikeSlider(Number(e.target.value))}
-                  style={{flex:1,accentColor:PU,cursor:"pointer",height:6}}/>
+                <div style={{flex:1}}>
+                  <input type="range" min={0} max={100} step={1} value={Math.min(hikePct,100)} onChange={e=>onHikeSlider(Number(e.target.value))}
+                    style={{width:"100%",accentColor:PU,cursor:"pointer",height:6,display:"block"}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4,padding:"0 10px"}}>
+                    {["0%","25%","50%","75%","100%"].map(l=>(
+                      <span key={l} style={{fontSize:10,color:"#94A3B8"}}>{l}</span>
+                    ))}
+                  </div>
+                </div>
                 <input type="number" min={0} max={500} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
-                  style={{width:68,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
+                  style={{width:68,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE",flexShrink:0}}/>
                 <span style={{fontSize:13,fontWeight:700,color:PU,marginLeft:-6}}>%</span>
               </div>
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:3,marginBottom:hikePct>100?4:8}}>
-                {["0%","25%","50%","75%","100%"].map(l=>(
-                  <span key={l} style={{fontSize:10,color:"#94A3B8"}}>{l}</span>
-                ))}
-              </div>
-              {hikePct>100&&<div style={{fontSize:10,color:"#6366F1",marginBottom:8}}>↑ Slider capped at 100% — manual entry active ({hikePct}%)</div>}
+              {hikePct>100&&<div style={{fontSize:10,color:"#6366F1",marginTop:4,marginBottom:4}}>↑ Slider capped at 100% — manual entry active ({hikePct}%)</div>}
               {tN(curBase)>0&&(
                 <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div>
