@@ -43,12 +43,17 @@ function fmtD(val){
 }
 
 function getPf(base,bPct,pfCap){
-  const b=base*bPct/100,w=pfCap?Math.min(b/12,15000):b/12;return w*.12*12;
+  const basicA=base*bPct/100,w=pfCap?Math.min(basicA/12,15000):basicA/12;return w*.12*12;
 }
 function getInHand(base,bonus,bPct,pfCap){
-  const tot=base+bonus,b=tot*bPct/100,w=pfCap?Math.min(b/12,15000):b/12;
-  const ee=w*.12*12,er=w*.12*12;
-  return tot-calcTax(Math.max(0,tot-75000-er))-ee-er;
+  // EE PF = 12% of basic (basic = bPct% of base, capped at ₹15k/mo if pfCap)
+  const basicA=base*bPct/100;
+  const pfWage=pfCap?Math.min(basicA/12,15000)*12:basicA;
+  const eePf=pfWage*.12;
+  // New regime: only standard deduction ₹75,000; no 80C/PF deduction
+  const taxable=Math.max(0,base+bonus-75000);
+  const tax=calcTax(taxable);
+  return Math.round(base+bonus-tax-eePf);
 }
 function getRetentionForYear(list,year){
   return(list||[]).filter(r=>r.year===year).reduce((s,r)=>s+tN(r.amount),0);
@@ -163,7 +168,8 @@ function CurrPill({currency,onChange,fx,onFx}){
       .then(r=>r.json()).then(d=>{const r=d?.rates?.INR;if(r)onFx(String(Math.round(r)));})
       .catch(()=>{}).finally(()=>setFetching(false));
   };
-  useEffect(()=>{if(currency==="usd"&&tN(fx)<50)fetchRate();},[currency]);// eslint-disable-line
+  // Fetch on mount always so rate is fresh
+  useEffect(()=>{fetchRate();},[]);// eslint-disable-line
   return(
     <div style={{marginBottom:10}}>
       <Pills opts={[{v:"usd",l:"$ USD"},{v:"inr",l:"₹ INR"}]} val={currency} onChange={onChange} accent={PU}/>
@@ -206,16 +212,10 @@ function PfSection({accent,pfInBase,onPfInBase,basicAuto,onBasicAuto,basicPct,on
       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:8,fontFamily:"Outfit,sans-serif"}}>PF Configuration</div>
       <LB>Is ER PF included in the quoted base?</LB>
       <Pills opts={[{v:true,l:"Inside Base"},{v:false,l:"On-Top of Base"}]} val={pfInBase} onChange={onPfInBase} accent={accent}/>
-      {pfInBase&&(
-        <HT>ER PF is baked into the base figure. Basic = 50% of base; ER PF ≈ 6% of base (12% × 50%). Shown as "Base + ER PF" in TC.</HT>
-      )}
-      {!pfInBase&&(
-        <>
-          <HT>ER PF is added on top of the quoted base. Choose how to calculate basic salary:</HT>
-          <Pills opts={[{v:true,l:"50% of base (auto)"},{v:false,l:"Custom %"}]} val={basicAuto} onChange={onBasicAuto} accent={accent}/>
-          {!basicAuto&&<SliderRow label="Basic % of base salary" value={basicPct} onChange={onBasicPct} min={20} max={80} accent={accent}/>}
-        </>
-      )}
+      <HT>{pfInBase?"ER PF is baked into the quoted base. ER PF = 12% of basic.":"ER PF is added on top of the quoted base. ER PF = 12% of basic."}</HT>
+      <LB>Basic salary calculation</LB>
+      <Pills opts={[{v:true,l:"50% of base (auto)"},{v:false,l:"Custom %"}]} val={basicAuto} onChange={onBasicAuto} accent={accent}/>
+      {!basicAuto&&<SliderRow label="Basic % of base salary" value={basicPct} onChange={onBasicPct} min={20} max={80} accent={accent}/>}
       <Toggle on={pfCap} onToggle={onPfCap} label="PF wage capped at ₹15,000/mo" accent={accent} size="sm"/>
     </div>
   );
@@ -344,7 +344,8 @@ function PFRow({label,v,accent}){
 function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
   if(!tN(base))return null;
   const bN=tN(base),bonN=bonus>0?bonus:0;
-  const erPfInside=pfInBase?Math.min(bN*0.5*0.12, pfCap?21600:bN*0.5*0.12):0;
+  const basicA=bN*(basicPct||50)/100;
+  const erPfInside=pfInBase?(pfCap?Math.min(basicA*0.12,21600):basicA*0.12):0;
   const erPfOnTop=!pfInBase?erPf:0;
   const rN=rsuY1||0;
   const tc=bN+bonN+erPfOnTop+rN;
@@ -352,7 +353,7 @@ function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
     <div style={{marginTop:16,padding:14,background:"linear-gradient(135deg,#EFF6FF,#F0F9FF)",borderRadius:12,border:"1.5px solid #BFDBFE"}}>
       <div style={{fontSize:11,fontWeight:700,color:CA,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>📊 Your Current Year 1 TC</div>
       <PFRow label="Base Salary" v={bN}/>
-      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (~6% of base)`} v={erPfInside}/>}
+      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (12% of basic)`} v={erPfInside}/>}
       {bonN>0&&<PFRow label="Bonus" v={bonN}/>}
       {erPfOnTop>0&&<PFRow label="ER PF (on-top of base)" v={erPfOnTop}/>}
       {rN>0&&<PFRow label="RSU / LTI (Y1)" v={rN}/>}
@@ -376,7 +377,8 @@ function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
 function NewTCPreview({base,bonus,rsuY1,erPf,joining,relocation,retentionY1,pfInBase,showInhand,basicPct,pfCap}){
   if(!tN(base))return null;
   const bN=tN(base),bonN=bonus>0?bonus:0;
-  const erPfInside=pfInBase?Math.min(bN*0.5*0.12, pfCap?21600:bN*0.5*0.12):0;
+  const basicA2=bN*(basicPct||50)/100;
+  const erPfInside=pfInBase?(pfCap?Math.min(basicA2*0.12,21600):basicA2*0.12):0;
   const erPfOnTop=!pfInBase?erPf:0;
   const rN=rsuY1||0;
   const jN=joining||0,relN=relocation||0,retN=retentionY1||0;
@@ -385,7 +387,7 @@ function NewTCPreview({base,bonus,rsuY1,erPf,joining,relocation,retentionY1,pfIn
     <div style={{marginTop:16,padding:14,background:"linear-gradient(135deg,#ECFDF5,#F0FDF9)",borderRadius:12,border:"1.5px solid #A7F3D0"}}>
       <div style={{fontSize:11,fontWeight:700,color:NA,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>📊 New Offer Year 1 TC</div>
       <PFRow label="Base Salary" v={bN}/>
-      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (~6% of base)`} v={erPfInside}/>}
+      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (12% of basic)`} v={erPfInside}/>}
       {bonN>0&&<PFRow label="Bonus" v={bonN}/>}
       {erPfOnTop>0&&<PFRow label="ER PF (on-top of base)" v={erPfOnTop}/>}
       {jN>0&&<PFRow label="Joining Bonus ⚡" v={jN}/>}
@@ -618,18 +620,33 @@ export default function OfferCompare(){
   const[curIncrFrom,setCurIncrFrom]=useState("y2");
   const[newIncrFrom,setNewIncrFrom]=useState("y2");
 
-  // Sync new offer settings (except base) when hike mode toggled on or slider moved
-  useEffect(()=>{
-    if(!hikeMode)return;
-    const b=tN(curBase);if(!b)return;
-    setNewBase(String(Math.round(b*(1+hikePct/100))));
-  },[hikeMode,hikePct]);// eslint-disable-line
+  // Sync settings (not base) once when hike mode is toggled on
   useEffect(()=>{
     if(!hikeMode)return;
     setNewBonusPct(curBonusPct);setNewBonusManual(curBonusManual);
     setNewPfInBase(curPfInBase);setNewBasicAuto(curBasicAuto);setNewBasicPct(curBasicPct);setNewPfCap(curPfCap);
     setNewIncrOn(curIncrOn);setNewIncrPct(curIncrPct);setNewIncrFrom(curIncrFrom);
+    // Also set initial base
+    const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+hikePct/100))));
   },[hikeMode]);// eslint-disable-line
+
+  // Direct handlers used by slider and manual input — no useEffect feedback loop
+  const onHikeSlider=v=>{
+    setHikePct(v);
+    const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+v/100))));
+  };
+  const onHikePctInput=v=>{
+    const n=Math.min(150,Math.max(1,Number(v)||1));
+    setHikePct(n);
+    const b=tN(curBase);if(b)setNewBase(String(Math.round(b*(1+n/100))));
+  };
+  const onNewBaseManual=v=>{
+    setNewBase(v);
+    if(hikeMode&&tN(curBase)>0&&tN(v)>0){
+      const rev=Math.round((tN(v)/tN(curBase)-1)*100);
+      if(rev>=1&&rev<=150)setHikePct(rev);
+    }
+  };
 
   const curEffBasic=curBasicAuto?50:curBasicPct;
   const newEffBasic=newBasicAuto?50:newBasicPct;
@@ -724,12 +741,6 @@ export default function OfferCompare(){
 
       <div style={{maxWidth:1100,margin:"0 auto",padding:"14px 12px"}}>
 
-        {/* GLOBAL OPTIONS */}
-        <div style={{background:"#fff",borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",gap:16,flexWrap:"wrap",border:"1.5px solid #E2E8F0",alignItems:"center"}}>
-          <span style={{fontSize:10,fontWeight:700,color:"#64748B",textTransform:"uppercase",letterSpacing:"0.06em",flexShrink:0}}>Options:</span>
-          <Toggle on={showInhand} onToggle={()=>setShowInhand(!showInhand)} label="Show in-hand estimate" accent={PU} size="sm"/>
-        </div>
-
         {/* HIKE / INCREMENT QUICK-FILL BANNER */}
         <div style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:14,border:"1.5px solid #E2E8F0"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:hikeMode?12:0,cursor:"pointer",userSelect:"none"}} onClick={()=>setHikeMode(!hikeMode)}>
@@ -751,8 +762,13 @@ export default function OfferCompare(){
                   <span style={{fontSize:22,fontWeight:900,color:PU,fontFamily:"Sora,sans-serif",minWidth:52,textAlign:"right"}}>{hikePct}%</span>
                 </div>
               </div>
-              <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>setHikePct(Number(e.target.value))}
-                style={{width:"100%",accentColor:PU,cursor:"pointer",height:6}}/>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>onHikeSlider(Number(e.target.value))}
+                  style={{flex:1,accentColor:PU,cursor:"pointer",height:6}}/>
+                <input type="number" min={1} max={150} value={hikePct} onChange={e=>onHikePctInput(e.target.value)}
+                  style={{width:60,padding:"5px 8px",border:`2px solid ${PU}`,borderRadius:8,fontSize:14,fontWeight:700,color:PU,fontFamily:"Courier New,monospace",textAlign:"center",outline:"none",background:"#EDE9FE"}}/>
+                <span style={{fontSize:13,fontWeight:700,color:PU,marginLeft:-6}}>%</span>
+              </div>
               <div style={{position:"relative",height:16,marginTop:2,marginBottom:8}}>
                 {[[1,"1%"],[30,"30%"],[50,"50%"],[100,"100%"],[150,"150%"]].map(([v,l])=>(
                   <span key={v} style={{position:"absolute",left:`${(v-1)/149*100}%`,transform:"translateX(-50%)",fontSize:10,color:Math.abs(hikePct-v)<=2?"#6366F1":"#94A3B8",fontWeight:Math.abs(hikePct-v)<=2?700:400,whiteSpace:"nowrap"}}>{l}</span>
@@ -817,13 +833,7 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{
-              setNewBase(v);
-              if(hikeMode&&tN(curBase)>0&&tN(v)>0){
-                const rev=Math.round((tN(v)/tN(curBase)-1)*100);
-                if(rev>=1&&rev<=150)setHikePct(rev);
-              }
-            }} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
+            <MoneyInput label="Annual Base Salary" value={newBase} onChange={onNewBaseManual} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
             {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#6366F1",marginTop:-10,marginBottom:10,fontFamily:"Outfit,sans-serif"}}>💡 Editing this updates the hike % slider automatically</div>}
             <SliderRow label="Bonus % of Base" value={newBonusPct} onChange={setNewBonusPct} min={0} max={100} accent={NA}/>
             <MoneyInput label="Or fixed bonus amount" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={NA}/>
