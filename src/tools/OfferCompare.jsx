@@ -204,12 +204,15 @@ function PfSection({accent,pfInBase,onPfInBase,basicAuto,onBasicAuto,basicPct,on
   return(
     <div style={{background:`${accent}0D`,border:`1px solid ${accent}33`,borderRadius:10,padding:"12px 14px",marginBottom:4}}>
       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:8,fontFamily:"Outfit,sans-serif"}}>PF Configuration</div>
-      <LB>Is ER PF included in the quoted CTC?</LB>
-      <Pills opts={[{v:true,l:"✓ Inside CTC"},{v:false,l:"✗ On top of CTC"}]} val={pfInBase} onChange={onPfInBase} accent={accent}/>
+      <LB>Is ER PF included in the quoted base?</LB>
+      <Pills opts={[{v:true,l:"Inside Base"},{v:false,l:"On-Top of Base"}]} val={pfInBase} onChange={onPfInBase} accent={accent}/>
+      {pfInBase&&(
+        <HT>ER PF is baked into the base figure. Basic = 50% of base; ER PF ≈ 6% of base (12% × 50%). Shown as "Base + ER PF" in TC.</HT>
+      )}
       {!pfInBase&&(
         <>
-          <HT>Employer PF will be added on top of base. Choose how to calculate basic salary:</HT>
-          <Pills opts={[{v:true,l:"50% auto (New Labour Code)"},{v:false,l:"Custom %"}]} val={basicAuto} onChange={onBasicAuto} accent={accent}/>
+          <HT>ER PF is added on top of the quoted base. Choose how to calculate basic salary:</HT>
+          <Pills opts={[{v:true,l:"50% of base (auto)"},{v:false,l:"Custom %"}]} val={basicAuto} onChange={onBasicAuto} accent={accent}/>
           {!basicAuto&&<SliderRow label="Basic % of base salary" value={basicPct} onChange={onBasicPct} min={20} max={80} accent={accent}/>}
         </>
       )}
@@ -329,28 +332,32 @@ function RetentionSection({accent,on,onToggle,list,onList}){
 /* ═══════════════════════════════════════════
    CURRENT TC PREVIEW
 ═══════════════════════════════════════════*/
+function PFRow({label,v,accent}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+      <span style={{fontSize:12,color:"#475569",fontFamily:"Outfit,sans-serif"}}>{label}</span>
+      <span style={{fontSize:12,fontFamily:"Courier New,monospace",color:"#1E293B",fontWeight:600}}>{fmtL(v)}</span>
+    </div>
+  );
+}
+
 function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
   if(!tN(base))return null;
   const bN=tN(base),bonN=bonus>0?bonus:0;
-  const pfN=!pfInBase?erPf:0;
+  const erPfInside=pfInBase?Math.min(bN*0.5*0.12, pfCap?21600:bN*0.5*0.12):0;
+  const erPfOnTop=!pfInBase?erPf:0;
   const rN=rsuY1||0;
-  const tc=bN+bonN+pfN+rN;
+  const tc=bN+bonN+erPfOnTop+rN;
   return(
     <div style={{marginTop:16,padding:14,background:"linear-gradient(135deg,#EFF6FF,#F0F9FF)",borderRadius:12,border:"1.5px solid #BFDBFE"}}>
       <div style={{fontSize:11,fontWeight:700,color:CA,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>📊 Your Current Year 1 TC</div>
-      {[
-        {l:"Base Salary",    v:bN,  show:true},
-        {l:"Bonus",          v:bonN,show:bonN>0},
-        {l:"ER PF (on top)", v:pfN, show:!pfInBase&&pfN>0},
-        {l:"RSU / LTI (Y1)",v:rN,  show:rN>0},
-      ].filter(r=>r.show).map(r=>(
-        <div key={r.l} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-          <span style={{fontSize:12,color:"#475569",fontFamily:"Outfit,sans-serif"}}>{r.l}</span>
-          <span style={{fontSize:12,fontFamily:"Courier New,monospace",color:"#1E293B",fontWeight:600}}>{fmtL(r.v)}</span>
-        </div>
-      ))}
+      <PFRow label="Base Salary" v={bN}/>
+      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (~6% of base)`} v={erPfInside}/>}
+      {bonN>0&&<PFRow label="Bonus" v={bonN}/>}
+      {erPfOnTop>0&&<PFRow label="ER PF (on-top of base)" v={erPfOnTop}/>}
+      {rN>0&&<PFRow label="RSU / LTI (Y1)" v={rN}/>}
       <div style={{borderTop:"1.5px solid #BFDBFE",marginTop:8,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:13,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>Total CTC</span>
+        <span style={{fontSize:13,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>{pfInBase?"Base + ER PF + Bonus":"Total CTC"}</span>
         <span style={{fontSize:16,fontWeight:800,color:CA,fontFamily:"Sora,sans-serif"}}>{fmtL(tc)}</span>
       </div>
       {showInhand&&(
@@ -369,29 +376,24 @@ function TCPreview({base,bonus,rsuY1,erPf,pfInBase,showInhand,basicPct,pfCap}){
 function NewTCPreview({base,bonus,rsuY1,erPf,joining,relocation,retentionY1,pfInBase,showInhand,basicPct,pfCap}){
   if(!tN(base))return null;
   const bN=tN(base),bonN=bonus>0?bonus:0;
-  const pfN=!pfInBase?erPf:0;
+  const erPfInside=pfInBase?Math.min(bN*0.5*0.12, pfCap?21600:bN*0.5*0.12):0;
+  const erPfOnTop=!pfInBase?erPf:0;
   const rN=rsuY1||0;
   const jN=joining||0,relN=relocation||0,retN=retentionY1||0;
-  const tc=bN+bonN+pfN+jN+relN+retN+rN;
+  const tc=bN+bonN+erPfOnTop+jN+relN+retN+rN;
   return(
     <div style={{marginTop:16,padding:14,background:"linear-gradient(135deg,#ECFDF5,#F0FDF9)",borderRadius:12,border:"1.5px solid #A7F3D0"}}>
       <div style={{fontSize:11,fontWeight:700,color:NA,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10,fontFamily:"Outfit,sans-serif"}}>📊 New Offer Year 1 TC</div>
-      {[
-        {l:"Base Salary",         v:bN,  show:true},
-        {l:"Bonus",               v:bonN,show:bonN>0},
-        {l:"ER PF (on top)",      v:pfN, show:!pfInBase&&pfN>0},
-        {l:"Joining Bonus ⚡",    v:jN,  show:jN>0},
-        {l:"Relocation ⚡",       v:relN,show:relN>0},
-        {l:"Retention (Y1) 🔁",  v:retN,show:retN>0},
-        {l:"RSU / LTI (Y1)",      v:rN,  show:rN>0},
-      ].filter(r=>r.show).map(r=>(
-        <div key={r.l} style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-          <span style={{fontSize:12,color:"#475569",fontFamily:"Outfit,sans-serif"}}>{r.l}</span>
-          <span style={{fontSize:12,fontFamily:"Courier New,monospace",color:"#1E293B",fontWeight:600}}>{fmtL(r.v)}</span>
-        </div>
-      ))}
+      <PFRow label="Base Salary" v={bN}/>
+      {pfInBase&&erPfInside>0&&<PFRow label={`  └ incl. ER PF (~6% of base)`} v={erPfInside}/>}
+      {bonN>0&&<PFRow label="Bonus" v={bonN}/>}
+      {erPfOnTop>0&&<PFRow label="ER PF (on-top of base)" v={erPfOnTop}/>}
+      {jN>0&&<PFRow label="Joining Bonus ⚡" v={jN}/>}
+      {relN>0&&<PFRow label="Relocation ⚡" v={relN}/>}
+      {retN>0&&<PFRow label="Retention (Y1) 🔁" v={retN}/>}
+      {rN>0&&<PFRow label="RSU / LTI (Y1)" v={rN}/>}
       <div style={{borderTop:"1.5px solid #A7F3D0",marginTop:8,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:13,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>Total CTC</span>
+        <span style={{fontSize:13,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>{pfInBase?"Base + ER PF + Bonus":"Total CTC"}</span>
         <span style={{fontSize:16,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>{fmtL(tc)}</span>
       </div>
       {(jN>0||relN>0)&&(
@@ -616,21 +618,18 @@ export default function OfferCompare(){
   const[curIncrFrom,setCurIncrFrom]=useState("y2");
   const[newIncrFrom,setNewIncrFrom]=useState("y2");
 
-  // Reactively sync new offer base when hike mode is active
+  // Sync new offer settings (except base) when hike mode toggled on or slider moved
   useEffect(()=>{
     if(!hikeMode)return;
     const b=tN(curBase);if(!b)return;
     setNewBase(String(Math.round(b*(1+hikePct/100))));
-    setNewBonusPct(curBonusPct);
-    setNewBonusManual(curBonusManual);
-    setNewPfInBase(curPfInBase);
-    setNewBasicAuto(curBasicAuto);
-    setNewBasicPct(curBasicPct);
-    setNewPfCap(curPfCap);
-    setNewIncrOn(curIncrOn);
-    setNewIncrPct(curIncrPct);
-    setNewIncrFrom(curIncrFrom);
-  },[hikeMode,hikePct,curBase,curBonusPct,curBonusManual,curPfInBase,curBasicAuto,curBasicPct,curPfCap,curIncrOn,curIncrPct,curIncrFrom]);// eslint-disable-line
+  },[hikeMode,hikePct]);// eslint-disable-line
+  useEffect(()=>{
+    if(!hikeMode)return;
+    setNewBonusPct(curBonusPct);setNewBonusManual(curBonusManual);
+    setNewPfInBase(curPfInBase);setNewBasicAuto(curBasicAuto);setNewBasicPct(curBasicPct);setNewPfCap(curPfCap);
+    setNewIncrOn(curIncrOn);setNewIncrPct(curIncrPct);setNewIncrFrom(curIncrFrom);
+  },[hikeMode]);// eslint-disable-line
 
   const curEffBasic=curBasicAuto?50:curBasicPct;
   const newEffBasic=newBasicAuto?50:newBasicPct;
@@ -754,8 +753,10 @@ export default function OfferCompare(){
               </div>
               <input type="range" min={1} max={150} step={1} value={hikePct} onChange={e=>setHikePct(Number(e.target.value))}
                 style={{width:"100%",accentColor:PU,cursor:"pointer",height:6}}/>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94A3B8",marginTop:2,marginBottom:8}}>
-                <span>1%</span><span style={{color:hikePct>=25&&hikePct<=35?"#6366F1":"inherit"}}>30%</span><span>50%</span><span>100%</span><span>150%</span>
+              <div style={{position:"relative",height:16,marginTop:2,marginBottom:8}}>
+                {[[1,"1%"],[30,"30%"],[50,"50%"],[100,"100%"],[150,"150%"]].map(([v,l])=>(
+                  <span key={v} style={{position:"absolute",left:`${(v-1)/149*100}%`,transform:"translateX(-50%)",fontSize:10,color:Math.abs(hikePct-v)<=2?"#6366F1":"#94A3B8",fontWeight:Math.abs(hikePct-v)<=2?700:400,whiteSpace:"nowrap"}}>{l}</span>
+                ))}
               </div>
               {tN(curBase)>0&&(
                 <div style={{background:"linear-gradient(135deg,#EDE9FE,#F0F9FF)",borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
@@ -816,8 +817,14 @@ export default function OfferCompare(){
               <div style={{fontSize:14,fontWeight:800,color:NA,fontFamily:"Sora,sans-serif"}}>New Offer</div>
             </div>
             <ST accent={NA}>Base &amp; Bonus</ST>
-            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{if(!hikeMode)setNewBase(v);}} placeholder={hikeMode?"Auto-filled from hike % ↑":"e.g. 1500000"} accent={NA}/>
-            {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#64748B",marginTop:-10,marginBottom:10,fontFamily:"Courier New,monospace"}}>Auto: {fmtL(Math.round(tN(curBase)*(1+hikePct/100)))} · change hike % above to update</div>}
+            <MoneyInput label="Annual Base Salary" value={newBase} onChange={v=>{
+              setNewBase(v);
+              if(hikeMode&&tN(curBase)>0&&tN(v)>0){
+                const rev=Math.round((tN(v)/tN(curBase)-1)*100);
+                if(rev>=1&&rev<=150)setHikePct(rev);
+              }
+            }} placeholder={hikeMode?"Type to override or use slider ↑":"e.g. 1500000"} accent={NA}/>
+            {hikeMode&&tN(curBase)>0&&<div style={{fontSize:11,color:"#6366F1",marginTop:-10,marginBottom:10,fontFamily:"Outfit,sans-serif"}}>💡 Editing this updates the hike % slider automatically</div>}
             <SliderRow label="Bonus % of Base" value={newBonusPct} onChange={setNewBonusPct} min={0} max={100} accent={NA}/>
             <MoneyInput label="Or fixed bonus amount" value={newBonusManual} onChange={setNewBonusManual} placeholder="0 = use % above" hint="Overrides % if non-zero" compact accent={NA}/>
             <ST accent={NA}>Provident Fund</ST>
