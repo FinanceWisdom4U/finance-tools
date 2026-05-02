@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 
 // ── formatters ────────────────────────────────────────────────────────────────
 const fi = n => new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n);
@@ -507,6 +508,7 @@ export default function NewRegimeSalaryCalc(){
       /* ── Mobile ≤ 480px ── */
       @media(max-width:480px){
         /* Header */
+        .bc-leaf{display:none !important}
         .hdr-h1{font-size:16px !important}
         .hdr-pad{padding:14px 16px 12px !important}
         /* Mode tabs */
@@ -566,6 +568,15 @@ export default function NewRegimeSalaryCalc(){
       <div style={{position:"absolute",right:-40,top:-40,width:180,height:180,borderRadius:"50%",background:"rgba(255,255,255,0.025)",pointerEvents:"none"}}/>
       <div style={{position:"absolute",right:60,bottom:-60,width:120,height:120,borderRadius:"50%",background:"rgba(4,120,87,0.15)",pointerEvents:"none"}}/>
       <div style={{maxWidth:700,margin:"0 auto",position:"relative"}}>
+        <nav className="bc" aria-label="Breadcrumb" style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,fontSize:12,fontFamily:"'Outfit',sans-serif",lineHeight:1.2,marginBottom:10}}>
+          <a href="https://financewisdom4u.com/" rel="noopener" style={{color:"rgba(255,255,255,.78)",textDecoration:"none",fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}>
+            <span aria-hidden="true" style={{fontSize:14,lineHeight:1}}>🏠</span> FinanceWisdom4U
+          </a>
+          <span style={{color:"rgba(255,255,255,.35)"}}>›</span>
+          <Link to="/" style={{color:"rgba(255,255,255,.78)",textDecoration:"none",fontWeight:600}}>All Tools</Link>
+          <span className="bc-leaf" style={{color:"rgba(255,255,255,.35)"}}>›</span>
+          <span className="bc-leaf" style={{color:"rgba(255,255,255,.55)",fontWeight:500}} aria-current="page">Salary Calculator</span>
+        </nav>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
           <div style={{width:42,height:42,borderRadius:13,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🇮🇳</div>
           <div>

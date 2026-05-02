@@ -11,6 +11,7 @@ Each tool is a standalone component — add new tools by dropping a JSX file and
 |---|---|---|
 | New Regime Salary Calculator | `/finance-tools/new-regime-salary-calculator` | Compute take-home salary under the New Tax Regime FY 2026-27 — slabs, PF, HRA, NPS, bonus TDS |
 | Offer Comparison Calculator | `/finance-tools/offer-comparison` | Compare a current offer vs a new offer across 4 years — base, bonus, RSU/LTI, joining bonus, increments, in-hand breakdown |
+| PPF Calculator | `/finance-tools/ppf-calculator` | Project PPF corpus growth — adjustable rate (7.1% default), 15-yr lock-in + 5-yr extensions, interactive stacked area chart, milestone comparison, year-by-year schedule, CSV export |
 
 ---
 
@@ -36,7 +37,8 @@ finance-tools/
 │   └── tools/
 │       ├── NewRegimeSalaryCalc.jsx   ← tool #1: salary calculator
 │       ├── NewRegimeSalaryCalc.test.js
-│       └── OfferCompare.jsx          ← tool #2: offer comparison
+│       ├── OfferCompare.jsx          ← tool #2: offer comparison
+│       └── PPFCalculator.jsx         ← tool #3: PPF corpus projector
 ├── .github/
 │   └── workflows/
 │       ├── deploy.yml          ← GitHub Actions build + artifact upload

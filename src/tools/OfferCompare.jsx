@@ -768,6 +768,15 @@ export default function OfferCompare(){
       {/* HEADER */}
       <div style={{background:"linear-gradient(135deg,#1e3a8a 0%,#1e40af 45%,#334155 100%)",padding:"24px 14px 20px",color:"#fff"}}>
         <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <nav className="bc" aria-label="Breadcrumb" style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,fontSize:12,fontFamily:"Outfit,sans-serif",lineHeight:1.2,marginBottom:8}}>
+            <a href="https://financewisdom4u.com/" rel="noopener" style={{color:"#93C5FD",textDecoration:"none",fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}>
+              <span aria-hidden="true" style={{fontSize:14,lineHeight:1}}>🏠</span> FinanceWisdom4U
+            </a>
+            <span style={{color:"rgba(147,197,253,.5)"}}>›</span>
+            <Link to="/" style={{color:"#93C5FD",textDecoration:"none",fontWeight:600}}>All Tools</Link>
+            <span className="bc-leaf" style={{color:"rgba(147,197,253,.5)"}}>›</span>
+            <span className="bc-leaf" style={{color:"rgba(255,255,255,.7)",fontWeight:500}} aria-current="page">Offer Comparison</span>
+          </nav>
           <h1 style={{fontSize:20,fontWeight:800,fontFamily:"Sora,sans-serif",margin:0,letterSpacing:"-0.4px",lineHeight:1.2}}>Offer Comparison Calculator</h1>
           <div style={{fontSize:11,color:"#93C5FD",marginTop:5,display:"flex",gap:5,flexWrap:"wrap"}}>
             {["New Tax Regime","FY 2026-27","4-Year View","Layered TC Analysis"].map(b=>(
@@ -1161,6 +1170,7 @@ export default function OfferCompare(){
         }
         @media(max-width:480px){
           .two-col{grid-template-columns:1fr!important;}
+          .bc-leaf{display:none!important;}
         }
         input[type=range]{height:4px;border-radius:2px;}
         input[type=range]::-webkit-slider-thumb{width:16px;height:16px;}
