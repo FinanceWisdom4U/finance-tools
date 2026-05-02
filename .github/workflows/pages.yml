@@ -2,7 +2,7 @@ name: Deploy Dev Preview to GitHub Pages
 
 on:
   push:
-    branches: [claude/finance-tools-dev-B3y84]
+    branches: [main, claude/finance-tools-dev-B3y84]
 
 permissions:
   contents: write
